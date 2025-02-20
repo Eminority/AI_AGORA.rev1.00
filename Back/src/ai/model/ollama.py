@@ -1,10 +1,8 @@
 import json
 import requests
 import subprocess
-from langchain_ollama import ChatOllama
-from langchain_core.messages import SystemMessage, HumanMessage
-
-class OllamaRunner:
+from ..ai_instance import AI_Instance
+class OllamaRunner(AI_Instance):
     def __init__(self, model_name : str, personality : str, role : str, base_url="http://localhost:11434"):
         self.model_name = model_name
         self.base_url = base_url

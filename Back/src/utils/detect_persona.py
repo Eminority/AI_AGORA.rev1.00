@@ -10,13 +10,13 @@ class DetectPersona:
     - 결과를 MongoDB에 자동 저장
     """
 
-    def __init__(self, AI_API_KEY=None):
+    def __init__(self, GEMINI_API_KEY=None):
         self.source = "wikipedia"  # 검색 소스: "wikipedia" 또는 "gemini"
         self.local_model = "llama3.2"  # Local 모델 이름
         self.retriever = WikipediaRetriever()
 
-        if AI_API_KEY:
-            genai.configure(api_key=AI_API_KEY)
+        if GEMINI_API_KEY:
+            genai.configure(api_key=GEMINI_API_KEY)
             self.gemini_model = genai.GenerativeModel('gemini-pro')
 
 

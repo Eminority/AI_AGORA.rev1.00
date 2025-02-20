@@ -90,5 +90,4 @@ class VectorStoreHandler:
         if not vectorstore:
             raise ValueError("벡터스토어 생성에 실패했습니다.")
         
-        self.vectorstore = vectorstore
         return vectorstore

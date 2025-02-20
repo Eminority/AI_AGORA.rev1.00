@@ -1,6 +1,7 @@
 from fastapi import FastAPI, Form, Query, File, UploadFile
 from fastapi.responses import FileResponse
 import os
+import yaml
 import json
 from dotenv import load_dotenv
 from .ai.ai_factory import AI_Factory
@@ -42,17 +43,25 @@ app = FastAPI()
 # YOLO 탐지 객체 생성
 yoloDetector = YOLODetect()
 
+
+## config.yaml 불러와서 변수에 저장해두기
+config_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../config/config.yaml"))
+with open(config_path, "r", encoding="utf-8") as file:
+    config = yaml.safe_load(file)
+
+
+
 # 이미지 관리자 - MongoDB에 업로드, MongoDB에서 다운로드 시켜주는 관리자
-IMAGE_SAVE_PATH = os.getenv("IMAGE_SAVE_PATH") if os.getenv("IMAGE_SAVE_PATH") else "image"
+IMAGE_SAVE_PATH = config.get("image_path") if config.get("image_path") else os.path.abspath(os.path.join(os.path.dirname(__file__), "../../assets/image"))
 real_image_save_path = os.path.join(os.getcwd(), IMAGE_SAVE_PATH)
 os.makedirs(real_image_save_path, exist_ok=True)
 image_manager = ImageManager(db=mongodb_connection, img_path=real_image_save_path)
 
 #persona 생성기
-detect_persona = DetectPersona(AI_API_KEY=AI_API_KEY["GEMINI"])
+detect_persona = DetectPersona(GEMINI_API_KEY=AI_API_KEY["GEMINI"])
 
 #프로필 관리 객체 생성
-profile_manager = ProfileManager(db=mongodb_connection, persona_module=detect_persona)
+profile_manager = ProfileManager(db=mongodb_connection, detect_persona=detect_persona)
 
 #크롤링하는 객체 생성
 web_scrapper = WebScrapper(api_keys=AI_API_KEY)
@@ -62,9 +71,10 @@ topic_checker = ai_factory.create_ai_instance("GEMINI")
 
 #토론 관리 인스턴스 생성
 progress_manager = ProgressManager(participant_factory=participant_factory,
+                                    web_scrapper=web_scrapper,
                                     mongoDBConnection=mongodb_connection,
                                     topic_checker=topic_checker,
-                                    vectorstore_handler=vectorstore_handler,)
+                                    vectorstore_handler=vectorstore_handler)
 
 ################################## 이 아래로 작성 필요
 

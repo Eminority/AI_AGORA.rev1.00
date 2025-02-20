@@ -3,11 +3,11 @@ from .detect_persona import DetectPersona
 from .profile import Profile
 from datetime import datetime
 class ProfileManager:
-    def __init__(self, db: MongoDBConnection, persona_module:DetectPersona):
+    def __init__(self, db: MongoDBConnection, detect_persona:DetectPersona):
         self.db = db
         data = db.select_data_from_query(collection_name="object", query={})
         self.objectlist = {}
-        self.persona_module = persona_module
+        self.detect_persona = detect_persona
         for raw_object in data:
             profile = Profile(_id           = str(raw_object.get("_id")),
                           name              = raw_object.get("name"),
@@ -26,7 +26,7 @@ class ProfileManager:
                         ai:str=None):
         if not self.duplicate_object_check(name, ai):
             return {"result":False}
-        object_attribute = self.persona_module.get_traits(name)
+        object_attribute = self.detect_persona.get_traits(name)
         new_obj = Profile(name=name,
                             img=img,
                             ai=ai,

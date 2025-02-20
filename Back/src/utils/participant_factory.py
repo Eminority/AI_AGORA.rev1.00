@@ -7,14 +7,18 @@ class ParticipantFactory:
         self.vector_handler = vector_handler
         self.ai_factory = ai_factory
 
-    def make_participant(self, data: dict = None):
-        ai_type = data.get("ai", None)
+    def make_participant(self, data: dict = None) -> Participant:
+        """
+        data:dict 구조는 {"name":물체이름, "ai":모델 이름, "img":image id}
+        """
         # ai type을 기반으로 instance 만들어주기
+        ai_type = data.get("ai", None)
         ai_instance = self.ai_factory.create_ai_instance(ai_type)
         # 만들어진 ai instance를 참가자 형태로 만들기
 
-        #### 여기서부터 작성
-        agora_ai = Agora_AI(ai_type=ai_type, ai_instance=ai_instance, personality=data.get("object_attribute", ""), vector_handler=self.vector_handler)
-        return Participant(id=str(data["_id"]), name=data["name"], agora_ai=agora_ai, img=data.get("img"))
+        return Participant(id=str(data.get("_id", "")),
+                           name=data.get("name", ""),
+                           ai_instance=ai_instance,
+                           img=data.get("img"))
 
 

@@ -27,22 +27,32 @@ class ProgressManager:
         result = {"result":False, "id":None}
 
         if progress_type == "debate":
-            # progress type==debate인 경우
-            # participant = {judge = {}, pos = {}, neg = {}}
-            generated_participant = self.set_participant(participants=participant)
-            debate = Debate(participant=generated_participant)
-            debate.data["topic"] = topic
-            debate.data["_id"] = id
-            id = self.mongoDBConnection.insert_data("debate", debate.data)
-            self.progress_pool[id] = debate
-            result["result"] = True
-            result["id"] = id
-            return result
-        
+            if self.check_topic_for_debate(topic):
+                # progress type==debate인 경우
+                # participant = {judge = {}, pos = {}, neg = {}}
+                generated_participant = self.set_participant(participants=participant)
+                debate = Debate(participant=generated_participant)
+                debate.vectorstore = self.ready_to_progress(topic=topic)
+                debate.data["topic"] = topic
+                debate.data["_id"] = id
+                id = self.mongoDBConnection.insert_data("debate", debate.data)
+                self.progress_pool[id] = debate
+                result["result"] = True
+                result["id"] = id
+                return result
         else:
             return result
+        
+
+    def ready_to_progress(self, topic):
+        """
+        progress를 위해서 topic을 crawling해서 vectorstoring해서 vectorstore 반환
+        """
+        articles = self.web_scrapper.get_articles(topic=topic)
+        return self.vectorstore_handler.vectorstoring(articles=articles)
+
     
-    def check_topic(self, topic:str) -> bool:
+    def check_topic_for_debate(self, topic:str) -> bool:
         """
         LLM을 사용하여 주제가 토론 가능 여부를 판별합니다.
         :param topic: 사용자가 입력한 토론 주제
@@ -68,10 +78,11 @@ class ProgressManager:
     def set_participant(self, participants:dict) -> dict:
         """
         participant dict 형태의 데이터를 받아서 ai 객체를 생성해 반환하는 함수
+        debate의 participants의 경우 {"pos": { ... }, "neg": { ... }, "judge": { ... } }
         """
         result = {}
-        for participant in participants:
-            result[participant] = self.participant_factory.make_participant(participant.get("data"))
+        for role in participants.keys():
+            result[role] = self.participant_factory.make_participant(participants[role])
         return result
     
     def save(self, progress_id:str):

@@ -147,7 +147,7 @@ class WebScrapper:
             num_articles (int): 가져올 기사 수. (기본값은 설정된 max_results 값)
 
         Returns:
-            list: 기사 본문 리스트.
+            list: {"content" : 기사 본문 리스트.}
         """
         num_articles = num_articles if num_articles else self.max_results
         article_links = self.search_articles(topic)

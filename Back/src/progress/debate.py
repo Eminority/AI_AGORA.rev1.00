@@ -26,8 +26,7 @@ class Debate(Progress):
                 "topic": None,
                 "status": {
                     "type": None,  # "in_progress" 또는 "end" 등
-                    "step": 0,     # 1부터 11까지 단계
-                    "turn": None
+                    "step": 0     # 1부터 11까지 단계
                 },
                 "debate_log": [],
                 "start_time": None,
@@ -75,9 +74,9 @@ class Debate(Progress):
         # 단계별 로직
         if step == 1:
             # 1. 판사가 주제 설명
-            self.ready_to_debate()
+            # self.ready_to_debate() -> crawling하는 단계가 필요함.
             result["speaker"] = "judge"
-            result["message"] = self.judge.generate_text(
+            result["message"] = self.judge.ai_instance.generate_text(
                 f"""
                 You are facilitating a debate on the topic: **"{self.data['topic']}"**. Your role is to introduce the discussion in a neutral manner, providing a brief, informative introduction to the topic without taking any stance.  
 
@@ -102,7 +101,7 @@ class Debate(Progress):
         elif step == 2:
             # 2. 찬성 측 주장
             result["speaker"] = "pos"
-            result["message"] = self.pos.generate_text(
+            result["message"] = self.participant["pos"].ai_instance.generate_text(
             f"""
             You are participating in a debate on the topic: **"{self.data['topic']}"**. Your role is to argue in favor of this statement.  
 
@@ -135,7 +134,7 @@ class Debate(Progress):
         elif step == 3:
             # 3. 반대 측 주장
             result["speaker"] = "neg"
-            result["message"] = self.neg.generate_text(
+            result["message"] = self.participant["neg"].ai_instance.generate_text(
             f"""
             You are participating in a debate on the topic: **"{self.data['topic']}"**. Your role is to argue against this statement.  
 
@@ -175,7 +174,7 @@ class Debate(Progress):
         elif step == 5:
             # 5. 반대 측 변론
             result["speaker"] = "neg"
-            result["message"] = self.neg.generate_text(
+            result["message"] = self.participant["neg"].ai_instance.generate_text(
             f"""
             You are participating in a debate on the topic: **"{self.data['topic']}"**. Your role is to **counter** the arguments made by the opposing (affirmative) side.  
 
@@ -217,7 +216,7 @@ class Debate(Progress):
         elif step == 6:
             # 6. 찬성 측 변론
             result["speaker"] = "pos"
-            result["message"] = self.pos.generate_text(
+            result["message"] = self.participant["pos"].ai_instance.generate_text(
             f"""
             You are participating in a debate on the topic: **"{self.data['topic']}"**. Your role is to **counter** the arguments made by the opposing (negative) side.  
 
@@ -265,7 +264,7 @@ class Debate(Progress):
         elif step == 8:
             # 8. 찬성 측 최종 결론
             result["speaker"] = "pos"
-            result["message"] = self.pos.generate_text(
+            result["message"] = self.participant["pos"].ai_instance.generate_text(
             f"""
             You are participating in a debate on the topic: **"{self.data['topic']}"**. Your role is to **deliver the final statement in support of the affirmative position**.
 
@@ -306,7 +305,7 @@ class Debate(Progress):
         elif step == 9:
             # 9. 반대 측 최종 결론
             result["speaker"] = "neg"
-            result["message"] = self.neg.generate_text(
+            result["message"] = self.participant["neg"].ai_instance.generate_text(
             f"""
             You are participating in a debate on the topic: **"{self.data['topic']}"**. Your role is to **deliver the final statement in support of the negative position**.
 
@@ -372,7 +371,7 @@ class Debate(Progress):
 
     def evaluate(self) -> str:
         # Generate the evaluation text from the judge
-        result_text = self.judge.generate_text(
+        result_text = self.judge.ai_instance.generate_text(
             f"""Statement: {self.data['debate_log']}\n\n
             The debate has reached its final stage. It’s time to determine which side presented a stronger case.
 

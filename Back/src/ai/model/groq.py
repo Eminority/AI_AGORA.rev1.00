@@ -1,7 +1,8 @@
 import requests
 from groq import Groq
+from ..ai_instance import AI_Instance
 
-class GroqAPI:
+class GroqAPI(AI_Instance):
     def __init__(self, api_key: str, model_name: str = "default-model"):
         """
         GroqAPI 인스턴스를 초기화합니다.

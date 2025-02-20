@@ -1,5 +1,5 @@
 import google.generativeai as genai
-from .ai_instance import AI_Instance
+from ..ai_instance import AI_Instance
 # GeminiAPI: 기존 Gemini API를 사용하며, 벡터스토어 기반 컨텍스트 활용 기능을 추가합니다.
 class GeminiAPI(AI_Instance):
     def __init__(self, api_key: str):
