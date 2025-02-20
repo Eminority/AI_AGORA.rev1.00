@@ -1,0 +1,72 @@
+{% extends 'layout/body.html' %}
+
+{% block title %} AI Agora {% endblock %}
+
+
+{% block content %}
+    <div class="content-container">
+        <h1> DEBATE </h1>
+        <div class="debate_info" style="display: none;">
+            <p> 찬성 측 참가자 이름 : <span id="pos_name"></span></p>
+            <p> 반대 측 참가자 이름 : <span id="neg_name"></span></p>
+            <p> 주제 : <span class="topic"></span></p>
+        </div>
+    </div>
+
+    {% include 'layout/chat.html' %}
+
+    <script src="{{ url_for('static', path='js/chat.js') }}"></script>
+    <script src="{{ url_for('static', path='js/autoprogress_debate.js') }}"></script>
+    <script src="{{ url_for('static', path='js/fetch_with_timeout.js') }}"></script>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", async function() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const debateId = urlParams.get("id");
+    
+            if (!debateId) {
+                console.error("토론 ID가 없습니다.");
+                return;
+            }
+    
+            try {
+                
+                const actionUrl = `debate/info?id=${debateId}`
+                const response = await fetchWithTimeout(actionUrl,{
+                    method: "get"},
+                    100000);
+                if(!response) throw new Error("서버 응답 실패");
+    
+                const data = response;
+                console.log(data)
+                const pos_name = data.participants.pos.name;
+                const posimg = data.participants.pos.img;
+                document.getElementById("pos_name").innerHTML = pos_name;
+                document.getElementById("pos_name").setAttribute("data-name",pos_name);
+                document.getElementById("pos_name").setAttribute("data-imgpath",`{{ url_for('static', path='img/profile') }}/default.png`);
+                
+                const neg_name = data.participants.neg.name;
+                const negimg = data.participants.neg.img;
+                document.getElementById("neg_name").innerHTML = neg_name;
+                document.getElementById("neg_name").setAttribute("data-name",neg_name);
+                document.getElementById("neg_name").setAttribute("data-imgpath",`{{ url_for('static', path='img/profile') }}/default.png`);
+                console.log(data.debate_log);
+                for (const block of data.debate_log){
+                    if (block.speaker){
+                        addMessageToChat(block.speaker, block.timestamp, block.message);
+                    }
+                }
+    
+                 // 📌 AI 토론자가 존재하면 자동으로 `/debate/progress` 요청을 반복 실행
+                 if (data.participants.pos.ai && data.participants.neg.ai) {
+                    document.querySelector(".chat-input").style.display = "none";
+                    autoProgressDebate(debateId);
+                }
+
+            } catch (error) {
+                console.error("데이터 불러오기 실패:", error);
+            }
+        });
+    </script>
+    
+{% endblock %}

@@ -1,0 +1,17 @@
+.mainbutton{
+    background-color: antiquewhite;
+    border-width: 3px;
+    border-color: blanchedalmond;
+    border-style: solid;
+}
+
+.floating-btn {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    z-index: 1;
+}
+
+.floating-btn:hover {
+    transform: scale(1.1);
+}

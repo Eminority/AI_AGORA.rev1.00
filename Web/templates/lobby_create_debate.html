@@ -1,0 +1,81 @@
+{% extends 'layout/body.html' %}
+
+{% block title %} AI Agora Lobby {% endblock %}
+{% block add_scriptsheet %}
+<script src="{{ url_for('static', path='js/fetch_with_timeout.js') }}"></script>
+{% endblock %}
+{% block content %}
+    <div class="content-container">
+        <h1> </h1>
+        <div class="container">
+            <form action="{{ request.url_for('create_debate') }}" id="debateForm" method="post">
+                <div class="row">
+                    <div class="col-sm-2"></div>
+                    <div class="col-sm-4">
+                        <label for="pos_id">찬성 측 AI:</label>
+                        <select id="pos_id" name="pos_id">  
+                            {% for id, data in profiles.items() %}
+                            {% set profile = data.data %}
+                                <option value="{{ profile._id }}"> {{ profile.name }} - {{ profile.ai }} </option>
+                            {% endfor %}
+                        </select>
+                        
+                    </div>
+                    <div class="col-sm-4">
+                        <label for="neg_id">반대 측 AI:</label>
+                        <select id="neg_id" name="neg_id">  
+                            {% for id, data in profiles.items() %}
+                            {% set profile = data.data %}
+                                <option value="{{ profile._id }}"> {{ profile.name }} - {{ profile.ai }} </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-sm-2"></div>
+                </div>
+                <div class="row">
+                    <div class="col-sm-2"></div>
+                    <div class="form-group col-sm-8">
+                        <label for="topic"></label>
+                        <input class="form-control" type="text" id="topic" name="topic" placeholder="주제 입력">
+                    </div>
+                    <div class="col-sm-2"></div>
+                </div>
+                <button type="submit">시작하기</button>
+            </form>
+            <script>
+                document.getElementById("debateForm").addEventListener("submit", async function(event) {
+                    event.preventDefault(); // 기본 제출 동작 방지
+                    
+                    if (document.getElementById("pos_id").value === document.getElementById("neg_id").value) {
+                        alert("같은 AI를 중복으로 선택할 수 없습니다.");
+                        return;
+                    }
+
+                    const formData = new FormData(event.target); // 폼 데이터 가져오기
+                    const actionUrl = event.target.action; // form의 action URL 가져오기
+
+                    try {
+                        // ✅ 10초 타임아웃을 적용하여 fetch 실행
+                        const result = await fetchWithTimeout(actionUrl, {
+                            method: "POST",
+                            body: formData // FormData를 그대로 전송
+                        }, 100000); // 100초 타임아웃 적용
+
+                        if (result.message){
+                            alert(result.message);
+                        }
+
+                        if (result.id) {
+                            window.location.href = `/debate/?id=${result.id}`; // 받은 ID로 페이지 이동
+                        }
+                    } catch (error) {
+                        console.error("에러 발생:", error);
+                        alert("토론 생성 중 오류가 발생했습니다.");
+                    }
+                });
+
+                
+            </script>
+        </div>
+    </div>
+{% endblock %}

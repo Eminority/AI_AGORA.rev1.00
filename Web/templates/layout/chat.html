@@ -1,0 +1,59 @@
+<div class="chat-container">
+    <div class="chat-box container" id="chat-box">
+        <!-- 채팅 메시지가 여기에 추가됨 -->
+    </div>
+    <div class="chat-input">
+        <input type="text" id="message" placeholder="메시지를 입력하세요...">
+        <button onclick="sendMessage()">전송</button>
+    </div>
+</div>
+
+<script>
+    async function sendMessage() {
+        let messageInput = document.getElementById("message");
+        let messageText = messageInput.value.trim();
+        if (messageText === "") return;
+
+        // 현재 URL에서 id 값 가져오기
+        const urlParams = new URLSearchParams(window.location.search);
+        const debateId = urlParams.get("id");
+
+        if (!debateId) {
+            console.error("토론 ID가 없습니다.");
+            return;
+        }
+
+        // 전송한 메시지를 채팅창에 추가 (내 메시지)
+        addMessageToChat("나", messageText, "sent");
+
+        // FormData 객체 생성 (application/x-www-form-urlencoded 전송용)
+        const formData = new URLSearchParams();
+        formData.append("id", debateId);
+        formData.append("message", messageText);
+
+        // 서버에 메시지 전송
+        try {
+            const response = await fetch("/debate/progress", {
+                method: "POST",
+                headers: { "Content-Type": "application/x-www-form-urlencoded" },
+                body: formData
+            });
+
+            if (!response.ok) throw new Error("서버 응답 실패");
+
+            const result = await response.json();
+            console.log("서버 응답:", result);
+
+            // 📌 서버에서 응답받은 메시지를 채팅창에 추가
+            if (result.progress) {
+                addMessageToChat(result.progress.speaker, result.progress.timestamp + "\n" + result.progress.message, "received");
+            }
+
+            // 입력창 초기화
+            messageInput.value = "";
+        } catch (error) {
+            console.error("메시지 전송 실패:", error);
+        }
+    }
+
+</script>

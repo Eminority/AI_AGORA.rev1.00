@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="ko">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>{% block title %}AI Agora{% endblock %}</title>
+        {% block add_stylesheet %} {% endblock %}
+        
+        <link rel="stylesheet" href="{{ url_for('static', path='style/bootstrap.min.css') }}">
+        <link rel="stylesheet" href="{{ url_for('static', path='style/custom.css') }}">
+        {% block add_scriptsheet %} {% endblock %}
+        <!-- jQuery library -->
+        <script src="{{ url_for('static', path='js/jquery.slim.min.js') }}"></script>
+        <!-- Popper JS -->
+        <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.1/dist/umd/popper.min.js"></script>
+        <!-- Bootstrap library-->
+        <script src="{{ url_for('static', path='js/bootstrap.min.js') }}"></script>
+    </head>
+    <body>
+    {% include 'layout/header.html' %}  <!-- 헤더 포함 -->
+
+        <div class="main">
+            {% block content %}{% endblock %}  <!-- 페이지별 콘텐츠 -->
+        </div>
+
+        {% include 'layout/footer.html' %}  <!-- 푸터 포함 -->
+    </body>
+</html>
