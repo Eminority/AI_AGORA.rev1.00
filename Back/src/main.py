@@ -66,6 +66,7 @@ progress_manager = ProgressManager(participant_factory=participant_factory,
                                     topic_checker=topic_checker,
                                     vectorstore_handler=vectorstore_handler,)
 
+################################## 이 아래로 작성 필요
 
 # 토론 생성 API
 @app.post("/debate")
