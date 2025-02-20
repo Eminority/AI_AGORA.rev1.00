@@ -1,5 +1,4 @@
 from langchain.vectorstores import FAISS
-from langchain.embeddings import OpenAIEmbeddings
 from langchain_huggingface import HuggingFaceEmbeddings
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain.docstore.document import Document

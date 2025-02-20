@@ -1,7 +1,7 @@
 import subprocess
 import json
 
-class OllamaTranslator:
+class SummaryTranslate:
     """
     Ollama를 subprocess를 사용하여 직접 실행하는 번역기 클래스.
     터미널에서 `ollama run <model>`을 실행하는 것과 같은 방식으로 동작함.
@@ -73,7 +73,7 @@ class OllamaTranslator:
 
 # ✅ 실행 예제
 if __name__ == "__main__":
-    translator = OllamaTranslator()  #  model = "" 으로 사용할 모델 지정. 기본값 : exaone3.5
+    translator = SummaryTranslate()  #  model = "" 으로 사용할 모델 지정. 기본값 : exaone3.5
     
     text_to_translate = "Hello, the weather is nice today."
     target_lang = "ko"  # 영어 → 한국어 번역

@@ -1,6 +1,7 @@
 from .model.gemini import GeminiAPI
 from .model.ollama import OllamaRunner
 from .model.groq import GroqAPI
+from .ai_instance import AI_Instance
 
 class AI_Factory:
     def __init__(self, api_keys: dict):
@@ -38,7 +39,7 @@ class AI_Factory:
             "llama3",
         ]
 
-    def create_ai_instance(self, ai_type: str):
+    def create_ai_instance(self, ai_type: str) -> AI_Instance:
         """
         AI 유형 또는 모델 이름을 기반으로 적절한 인스턴스를 생성하는 메서드
         :param ai_type: "ollama", "GEMINI", "GROQ" 또는 모델명 자체

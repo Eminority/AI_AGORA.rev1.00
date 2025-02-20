@@ -3,17 +3,16 @@ from fastapi.responses import FileResponse
 import os
 import json
 from dotenv import load_dotenv
-from debate.ai_module.ai_factory import AI_Factory
-from debate.debate_manager import DebateManager
-from debate.participants import ParticipantFactory
-from db_module import MongoDBConnection
-from vectorstore_module import VectorStoreHandler
-from ai_profile.ai_profile import ProfileManager
-from yolo_detect import YOLODetect
-from image_manager import ImageManager
-from detect_persona import DetectPersona
-from debate.check_topic import CheckTopic
-from crawling import DebateDataProcessor
+from .ai.ai_factory import AI_Factory
+from .utils.progress_manager import ProgressManager
+from .utils.participant_factory import ParticipantFactory
+from .utils.mongodb_connection import MongoDBConnection
+from .utils.vectorstorehandler import VectorStoreHandler
+from .utils.profile_manager import ProfileManager
+from .yolo.yolo_detect import YOLODetect
+from .utils.image_manager import ImageManager
+from .utils.detect_persona import DetectPersona
+from .utils.web_scrapper import WebScrapper
 # 환경 변수 로드
 load_dotenv()
 
@@ -24,18 +23,18 @@ DB_NAME = os.getenv("DB_NAME")
 if not MONGO_URI or not DB_NAME:
     raise ValueError("MONGO_URI 또는 DB_NAME이 .env 파일에서 설정되지 않았습니다.")
 
-db_connection = MongoDBConnection(MONGO_URI, DB_NAME)
+mongodb_connection = MongoDBConnection(MONGO_URI, DB_NAME)
 
 # AI API 키 불러오기
 AI_API_KEY = json.loads(os.getenv("AI_API_KEY"))
 ai_factory = AI_Factory(AI_API_KEY)
 
 # 벡터스토어 핸들러 생성
-vector_handler = VectorStoreHandler(chunk_size=500, chunk_overlap=50)
+vectorstore_handler = VectorStoreHandler(chunk_size=500, chunk_overlap=50)
 
 
 # Debate 인스턴스 초기화
-participant_factory = ParticipantFactory(vector_handler, ai_factory)
+participant_factory = ParticipantFactory(vectorstore_handler, ai_factory)
 
 # FastAPI 앱 생성
 app = FastAPI()
@@ -47,25 +46,26 @@ yoloDetector = YOLODetect()
 IMAGE_SAVE_PATH = os.getenv("IMAGE_SAVE_PATH") if os.getenv("IMAGE_SAVE_PATH") else "image"
 real_image_save_path = os.path.join(os.getcwd(), IMAGE_SAVE_PATH)
 os.makedirs(real_image_save_path, exist_ok=True)
-image_manager = ImageManager(db=db_connection, img_path=real_image_save_path)
+image_manager = ImageManager(db=mongodb_connection, img_path=real_image_save_path)
 
 #persona 생성기
 detect_persona = DetectPersona(AI_API_KEY=AI_API_KEY["GEMINI"])
 
 #프로필 관리 객체 생성
-profile_manager = ProfileManager(db=db_connection, persona_module=detect_persona)
+profile_manager = ProfileManager(db=mongodb_connection, persona_module=detect_persona)
 
 #크롤링하는 객체 생성
-debate_data_processor = DebateDataProcessor(api_keys=AI_API_KEY)
+web_scrapper = WebScrapper(api_keys=AI_API_KEY)
 
+#토론 주제 확인 객체 - AI 인스턴스
+topic_checker = ai_factory.create_ai_instance("GEMINI")
 
 #토론 관리 인스턴스 생성
-debateManager = DebateManager(participant_factory=participant_factory,
-                              debate_data_processor=debate_data_processor,
-                              db_connection=db_connection)
+progress_manager = ProgressManager(participant_factory=participant_factory,
+                                    mongoDBConnection=mongodb_connection,
+                                    topic_checker=topic_checker,
+                                    vectorstore_handler=vectorstore_handler,)
 
-#토론 주제 확인 객체
-topic_checker = CheckTopic(AI_API_KEY["GEMINI"])
 
 # 토론 생성 API
 @app.post("/debate")

@@ -1,6 +1,6 @@
 import base64
 from fastapi import UploadFile, File
-from db_module import MongoDBConnection
+from .mongodb_connection import MongoDBConnection
 from datetime import datetime
 import shutil
 import os
