@@ -39,18 +39,21 @@ if __name__ == "__main__":
     AI_API_KEY = json.loads(os.getenv("AI_API_KEY"))
     ai_factory = AI_Factory(AI_API_KEY)
 
+    
+    ## config.yaml 불러와서 변수에 저장해두기
+    config_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..\\config\\config.yaml"))
+    with open(config_path, "r", encoding="utf-8") as file:
+        config = yaml.safe_load(file)
+
     # 벡터스토어 핸들러 생성
-    vectorstore_handler = VectorStoreHandler(chunk_size=500, chunk_overlap=50)
+    vectorstore_handler = VectorStoreHandler(chunk_size=config["VectorStoreHandler"]["chunk_size"],
+                                             chunk_overlap=config["VectorStoreHandler"]["chunk_overlap"])
 
 
     # Debate 인스턴스 초기화
     participant_factory = ParticipantFactory(vectorstore_handler, ai_factory)
 
 
-    ## config.yaml 불러와서 변수에 저장해두기
-    config_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..\\config\\config.yaml"))
-    with open(config_path, "r", encoding="utf-8") as file:
-        config = yaml.safe_load(file)
 
 
 
@@ -68,7 +71,8 @@ if __name__ == "__main__":
                                         web_scrapper=web_scrapper,
                                         mongoDBConnection=mongodb_connection,
                                         topic_checker=topic_checker,
-                                        vectorstore_handler=vectorstore_handler)
+                                        vectorstore_handler=vectorstore_handler,
+                                        generate_text_config=config["generate_text_config"])
     user = {
         "_id": "67ac1d198f64bb663ade93b3",
         "name": "dog",
@@ -107,5 +111,7 @@ if __name__ == "__main__":
     ###############################임시로 실행하는 테스트 코드
     for debate in debates:
         while debate.data["status"]["type"] != "end":
-            print (debate.progress())
+            result = debate.progress()
+            print()
+            print(f"{result['speaker']} : {result['message']}")
     ###############################임시로 실행하는 테스트 코드

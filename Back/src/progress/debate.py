@@ -8,12 +8,15 @@ class Debate(Progress):
     debate를 관리하는 클래스
     self.participants에 judge, pos, neg ai를 넣넣는다.
     self.data에 save할 데이터를 넣는다.
+    generate_text_config에는 max_tokens, k, temperature 값을 저장한다.
     method : progress
     method : evaluate
     """
-    def __init__(self, participant:dict, data:dict):
-        # {"judge": Participant, "pos": Participant, "neg": Participant} 형태.
-        self.participant = participant
+    def __init__(self, participant:dict, generate_text_config:dict, data:dict=None, ):
+        # participant:{"judge": Participant, "pos": Participant, "neg": Participant} 형태.
+        super().__init__(participant=participant,
+                         generate_text_config=generate_text_config,
+                         data=data)
 
         # 총 11단계 진행
         self.max_step = 11
@@ -76,8 +79,7 @@ class Debate(Progress):
             # 1. 판사가 주제 설명
             # self.ready_to_debate() -> crawling하는 단계가 필요함.
             result["speaker"] = "judge"
-            result["message"] = self.judge.ai_instance.generate_text(
-                f"""
+            prompt = f"""
                 You are facilitating a debate on the topic: **"{self.data['topic']}"**. Your role is to introduce the discussion in a neutral manner, providing a brief, informative introduction to the topic without taking any stance.  
 
                 ### **Instructions:**
@@ -96,13 +98,12 @@ class Debate(Progress):
                 "To begin, let's hear from the **affirmative side**. Please present your argument in support of {self.data['topic']}. What are the key reasons and evidence supporting your stance?"
 
                 """
-            )
+            result["message"] = self.generate_text(result["speaker"],prompt)
 
         elif step == 2:
             # 2. 찬성 측 주장
             result["speaker"] = "pos"
-            result["message"] = self.participant["pos"].ai_instance.generate_text(
-            f"""
+            prompt = f"""
             You are participating in a debate on the topic: **"{self.data['topic']}"**. Your role is to argue in favor of this statement.  
 
             ### **Instructions:**  
@@ -129,13 +130,12 @@ class Debate(Progress):
 
             Be concise yet persuasive. Provide factual support where applicable.
             """
-            )
+            result["message"] = self.generate_text(result["speaker"], prompt)
 
         elif step == 3:
             # 3. 반대 측 주장
             result["speaker"] = "neg"
-            result["message"] = self.participant["neg"].ai_instance.generate_text(
-            f"""
+            prompt = f"""
             You are participating in a debate on the topic: **"{self.data['topic']}"**. Your role is to argue against this statement.  
 
             ### **Instructions:**  
@@ -162,8 +162,7 @@ class Debate(Progress):
 
             Be concise yet persuasive. Provide factual support where applicable.
             """
-
-            )
+            result["message"] = self.generate_text(result["speaker"], prompt)
 
         elif step == 4:
             # 4. 판사가 변론 준비시간 1초 제공
@@ -174,8 +173,7 @@ class Debate(Progress):
         elif step == 5:
             # 5. 반대 측 변론
             result["speaker"] = "neg"
-            result["message"] = self.participant["neg"].ai_instance.generate_text(
-            f"""
+            prompt = f"""
             You are participating in a debate on the topic: **"{self.data['topic']}"**. Your role is to **counter** the arguments made by the opposing (affirmative) side.  
 
             ### **Instructions:**  
@@ -211,13 +209,11 @@ class Debate(Progress):
             **Previous Statements:** {self.data['debate_log'][-3]}  
             """
 
-            )
-
+            result["message"] = self.generate_text(result["speaker"],prompt)
         elif step == 6:
             # 6. 찬성 측 변론
             result["speaker"] = "pos"
-            result["message"] = self.participant["pos"].ai_instance.generate_text(
-            f"""
+            prompt = f"""
             You are participating in a debate on the topic: **"{self.data['topic']}"**. Your role is to **counter** the arguments made by the opposing (negative) side.  
 
             ### **Instructions:**  
@@ -252,8 +248,7 @@ class Debate(Progress):
             **Debate Topic:** {self.data['topic']}  
             **Previous Statements:** {self.data['debate_log'][-3]}  
             """
-
-            )
+            result["message"] = self.generate_text(result["speaker"],prompt)
 
         elif step == 7:
             # 7. 판사가 최종 주장 시간 부여
@@ -264,8 +259,7 @@ class Debate(Progress):
         elif step == 8:
             # 8. 찬성 측 최종 결론
             result["speaker"] = "pos"
-            result["message"] = self.participant["pos"].ai_instance.generate_text(
-            f"""
+            prompt = f"""
             You are participating in a debate on the topic: **"{self.data['topic']}"**. Your role is to **deliver the final statement in support of the affirmative position**.
 
             ### **Instructions:**  
@@ -300,13 +294,12 @@ class Debate(Progress):
             **Previous Statements:** {self.data['debate_log'][:-2]}  
             """
 
-            )
+            result["message"] = self.generate_text(result["speaker"],prompt)
 
         elif step == 9:
             # 9. 반대 측 최종 결론
             result["speaker"] = "neg"
-            result["message"] = self.participant["neg"].ai_instance.generate_text(
-            f"""
+            prompt = f"""
             You are participating in a debate on the topic: **"{self.data['topic']}"**. Your role is to **deliver the final statement in support of the negative position**.
 
             ### **Instructions:**  
@@ -340,8 +333,8 @@ class Debate(Progress):
             **Debate Topic:** {self.data['topic']}  
             **Previous Statements:** {self.data['debate_log'][:-2]}  
             """
-
-            )
+            
+            result["message"] = self.generate_text(result["speaker"],prompt)
 
         elif step == 10:
             # 10. 판사가 판결 준비시간(1초) 부여
@@ -362,7 +355,6 @@ class Debate(Progress):
         
         debate["debate_log"].append(result)
         result["timestamp"] = datetime.now()
-        self.save()
 
         if step < self.max_step:
             debate["status"]["step"] += 1
@@ -371,8 +363,7 @@ class Debate(Progress):
 
     def evaluate(self) -> str:
         # Generate the evaluation text from the judge
-        result_text = self.judge.ai_instance.generate_text(
-            f"""Statement: {self.data['debate_log']}\n\n
+        prompt = f"""Statement: {self.data['debate_log']}\n\n
             The debate has reached its final stage. It’s time to determine which side presented a stronger case.
 
             Let’s go over the key points made by both sides:  
@@ -393,7 +384,9 @@ class Debate(Progress):
 
             Now, make your decision in a similar manner.
             """
-        )
+        
+        result_text = self.generate_text("judge",prompt)
+        
 
         match = re.search(r'Final Score\s*-\s*Pro:\s*(\d+)', result_text)
         

@@ -8,7 +8,7 @@ class GeminiAPI(AI_Instance):
         """
         #super().__init__()에서 해결
         #self.api_key = api_key
-        super().__init__(api_key=api_key)
+        super().__init__(api_key=api_key, model_name="GEMINI")
         genai.configure(api_key=self.api_key)
         self.model = genai.GenerativeModel('gemini-2.0-flash') #모델 변경 pro -> 2.0-flash
         self.personality = "" #기본 성격
@@ -21,7 +21,8 @@ class GeminiAPI(AI_Instance):
         """
         self.personality = personality_text
 
-    def generate_text(self, user_prompt: str, max_tokens: int) -> str:
+    
+    def generate_text(self, user_prompt: str, max_tokens: int, temperature:float) -> str:
         """
         Gemini 모델을 사용하여 텍스트를 생성합니다.
         
@@ -45,7 +46,7 @@ class GeminiAPI(AI_Instance):
         except Exception as e:
             return f"Error: {str(e)}"
 
-    def generate_text_with_vectorstore(self, user_prompt: str, vectorstore, max_tokens: int, k: int = 3) -> str:
+    def generate_text_with_vectorstore(self, user_prompt: str, max_tokens: int, temperature:float, vectorstore,  k: int) -> str:
         """
         벡터스토어에서 관련 컨텍스트를 검색한 후, 이를 포함하여 Gemini API로 답변을 생성합니다.
         

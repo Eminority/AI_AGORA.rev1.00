@@ -10,7 +10,8 @@ class GroqAPI(AI_Instance):
         :param api_key: Groq API 인증키
         :param model_name: 기본으로 사용할 모델 ID (예: 'model_name_small', 'model_name_large' 등)
         """
-        self.api_key = api_key
+        
+        super().__init__(api_key=api_key, model_name=model_name)
         self.groq_client = Groq(api_key=api_key)
         self.model_name = model_name
         self.personality = ""  # 기본 시스템 역할 (없으면 빈 문자열)
@@ -29,7 +30,7 @@ class GroqAPI(AI_Instance):
         self.personality = personality_text
 
 
-    def generate_text(self, user_prompt: str, max_tokens: int = 200, temperature: float = 0.7) -> str:
+    def generate_text(self, user_prompt: str, max_tokens: int, temperature: float) -> str:
         """
         Groq 모델을 사용하여 텍스트를 생성합니다.
 
@@ -61,7 +62,7 @@ class GroqAPI(AI_Instance):
         except Exception as e:
             return f"Error: {str(e)}"
 
-    def generate_text_with_vectorstore(self, user_prompt: str, vectorstore, k: int = 3, max_tokens: int = 200, temperature: float = 0.7) -> str:
+    def generate_text_with_vectorstore(self, user_prompt: str, max_tokens: int, temperature:float, vectorstore,  k: int) -> str:
         """
         벡터스토어에서 유사한 컨텍스트를 검색한 후, 이를 포함하여 Groq API로 답변을 생성합니다.
 

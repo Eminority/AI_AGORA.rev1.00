@@ -11,14 +11,14 @@ class AI_Instance(ABC):
         self.personality = personality
 
     @abstractmethod
-    def generate_text(self, user_prompt: str, max_tokens: int) -> str:
+    def generate_text(self, user_prompt: str, max_tokens: int , temperature:float) -> str:
         """
         prompt를 받아 text를 출력해주는 메서드.
         """
         pass
 
     @abstractmethod
-    def generate_text_with_vectorstore(self, user_prompt: str, vectorstore, max_tokens: int, k: int = 3) -> str:
+    def generate_text_with_vectorstore(self, user_prompt: str, max_tokens: int, temperature:float, vectorstore,  k: int) -> str:
         """
         vectorstore기반으로 prompt를 받아 text를 출력해주는 메서드.
         """

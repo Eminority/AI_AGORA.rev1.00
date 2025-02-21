@@ -9,7 +9,8 @@ class ProgressManager:
                         web_scrapper:WebScrapper,
                         mongoDBConnection:MongoDBConnection,
                         topic_checker:AI_Instance,
-                        vectorstore_handler: VectorStoreHandler):
+                        vectorstore_handler: VectorStoreHandler,
+                        generate_text_config: dict):
         
         self.participant_factory = participant_factory
         self.web_scrapper = web_scrapper
@@ -17,6 +18,7 @@ class ProgressManager:
         self.topic_checker = topic_checker
         self.vectorstore_handler = vectorstore_handler
         self.progress_pool = {}
+        self.generate_text_config = generate_text_config
 
 
     def create_progress(self, progress_type:str, participant:dict, topic:str) -> dict:
@@ -31,18 +33,17 @@ class ProgressManager:
                 # progress type==debate인 경우
                 # participant = {judge = {}, pos = {}, neg = {}}
                 generated_participant = self.set_participant(participants=participant)
-                debate = Debate(participant=generated_participant)
+                debate = Debate(participant=generated_participant, generate_text_config=self.generate_text_config["debate"])
                 debate.vectorstore = self.ready_to_progress(topic=topic)
                 debate.data["topic"] = topic
+                id = str(self.mongoDBConnection.insert_data("debate", debate.data))
                 debate.data["_id"] = id
-                id = self.mongoDBConnection.insert_data("debate", debate.data)
                 self.progress_pool[id] = debate
                 result["result"] = True
                 result["id"] = id
                 return result
         else:
             return result
-        
 
     def ready_to_progress(self, topic):
         """
@@ -68,7 +69,7 @@ class ProgressManager:
         """
 
         try:
-            response = self.topic_checker.generate_text(prompt, max_tokens=5)  # 최대 5토큰 (True/False 응답만 받도록)
+            response = self.topic_checker.generate_text(prompt, max_tokens=5, temperature=0.5)  # 최대 5토큰 (True/False 응답만 받도록)
             result = response.strip().lower()
             return result == "true"
         except Exception as e:
