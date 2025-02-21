@@ -1,78 +1,56 @@
-
 import sys
-from pathlib import Path
-
-project_root = Path(__file__).resolve().parent.parent
-sys.path.append(str(project_root))
-
-
-
 import os
-import yaml
+from debate.ai_module.gemini import GeminiAPI
 import json
 from dotenv import load_dotenv
-from Back.src.ai.model.gemini import GeminiAPI
-from Back.src.utils.mongodb_connection import MongoDBConnection
-from Back.src.utils.vectorstorehandler import VectorStoreHandler  # 벡터스토어 관련 모듈
-from Back.src.ai.ai_factory import AI_Factory
-from Back.src.utils.participant_factory import ParticipantFactory 
-from Back.src.progress.debate import Debate
-from Back.src.utils.progress_manager import ProgressManager
-from Back.src.utils.web_scrapper import WebScrapper
-from Back.src.utils.detect_persona import DetectPersona
-
+import google.generativeai as genai
+from db_module import MongoDBConnection
+from vectorstore_module import VectorStoreHandler  # 벡터스토어 관련 모듈
+from debate.ai_module.ai_factory import AI_Factory
+from debate.participants import ParticipantFactory 
+from debate.debate import Debate
+from debate.debate_manager import DebateManager
+from groq import Groq
+from crawling import DebateDataProcessor
+from detect_persona import DetectPersona
 if __name__ == "__main__":
 
     #MONGO_URI, DB_NAME 확인
-    load_dotenv(dotenv_path="..\\Back\\src\\.env", override=True)  # .env 파일 로드
+    load_dotenv(override=True)  # .env 파일 로드
 
-    # MongoDB 연결
     MONGO_URI = os.getenv("MONGO_URI")
     DB_NAME = os.getenv("DB_NAME")
 
-    if not MONGO_URI or not DB_NAME:
-        raise ValueError("MONGO_URI 또는 DB_NAME이 .env 파일에서 설정되지 않았습니다.")
+    for var_name, var_value in [("MONGO_URI", MONGO_URI),
+                                ("DB_NAME", DB_NAME)]:
+        
+        if not var_value:
+            raise ValueError(f"{var_name}가 .env파일에 설정되어있지 않습니다.")
+     # MongoDB 연결 생성
+    db_connection = MongoDBConnection(MONGO_URI, DB_NAME)
 
-    mongodb_connection = MongoDBConnection(MONGO_URI, DB_NAME)
-
-    # AI API 키 불러오기
+    # .env에 JSON형태로 저장된 API KEY를 dict 형태로 불러오기
     AI_API_KEY = json.loads(os.getenv("AI_API_KEY"))
     ai_factory = AI_Factory(AI_API_KEY)
 
-    
-    ## config.yaml 불러와서 변수에 저장해두기
-    config_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..\\config\\config.yaml"))
-    with open(config_path, "r", encoding="utf-8") as file:
-        config = yaml.safe_load(file)
+    debate_data_processor = DebateDataProcessor(api_keys=AI_API_KEY)
 
-    # 벡터스토어 핸들러 생성
-    vectorstore_handler = VectorStoreHandler(chunk_size=config["VectorStoreHandler"]["chunk_size"],
-                                             chunk_overlap=config["VectorStoreHandler"]["chunk_overlap"])
+    # VectorStoreHandler 인스턴스 생성 (임베딩 모델 및 청크 설정은 필요에 따라 조정)
+    vector_handler = VectorStoreHandler(chunk_size=500, chunk_overlap=50)
 
+    #주제를 후에 입력받는다고 가정하고 작성.
+    #토론 인스턴스 만들기
+    participant_factory = ParticipantFactory(vector_handler,ai_factory)
+    debate_manager = DebateManager(participant_factory=participant_factory, debate_data_processor=debate_data_processor,db_connection=db_connection)
+    ###############################임시로 입력받는 테스트 코드
 
-    # Debate 인스턴스 초기화
-    participant_factory = ParticipantFactory(vectorstore_handler, ai_factory)
+    ###detectpersona
+    detect_persona = DetectPersona(AI_API_KEY=AI_API_KEY["GEMINI"])
 
-
-
-
-
-    #persona 생성기
-    detect_persona = DetectPersona(GEMINI_API_KEY=AI_API_KEY["GEMINI"])
-
-    #크롤링하는 객체 생성
-    web_scrapper = WebScrapper(api_keys=AI_API_KEY)
-
-    #토론 주제 확인 객체 - AI 인스턴스
-    topic_checker = ai_factory.create_ai_instance("GEMINI")
-
-    #토론 관리 인스턴스 생성
-    progress_manager = ProgressManager(participant_factory=participant_factory,
-                                        web_scrapper=web_scrapper,
-                                        mongoDBConnection=mongodb_connection,
-                                        topic_checker=topic_checker,
-                                        vectorstore_handler=vectorstore_handler,
-                                        generate_text_config=config["generate_text_config"])
+    ####임시 사용자
+    # user_name = input("pos 이름 설정 : ")
+    # user_id = "temp_id_111111111"
+    # user_ai = input("ai 설정 - 현재 가능한 AI : GEMINI // 입력  :")
     user = {
         "_id": "67ac1d198f64bb663ade93b3",
         "name": "dog",
@@ -94,24 +72,18 @@ if __name__ == "__main__":
                 "object_attribute": detect_persona.get_traits(opponent_name)
                 }
     
-    
-    judge = {"ai": "GEMINI"}
-
-
-    participants = {"pos" : user, "neg" : opponent, "judge" : judge}
+    participants = {"pos" : user, "neg" : opponent}
     
     topic = input("주제 입력 : ")
 
-    progress_manager.create_progress("debate", participant=participants, topic=topic)
 
-    debates = progress_manager.progress_pool.values()
+    debate_manager.create_debate(pos=user, neg=opponent, topic=topic)    
+    debates = debate_manager.debatepool.values()
     ###############################임시로 입력받는 테스트 코드
     
     
     ###############################임시로 실행하는 테스트 코드
     for debate in debates:
-        while debate.data["status"]["type"] != "end":
-            result = debate.progress()
-            print()
-            print(f"{result['speaker']} : {result['message']}")
+        while debate.debate["status"]["type"] != "end":
+            print (debate.progress())
     ###############################임시로 실행하는 테스트 코드
