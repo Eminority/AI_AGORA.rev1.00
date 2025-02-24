@@ -1,0 +1,65 @@
+<div class="modai-dialog modal-dialog-centered">
+    <div class="modal-content">
+        <!-- ai create modal header -->
+        <div class="modal-header">
+            <h4 class="modal-title">AI 생성하기</h4>
+            <button type="button" class="close" data-dismiss="modal">&times;</button>
+        </div>
+        <!-- ai create modal body -->
+        <div class="modal-body ">
+            <div class="form-group">
+                <form id="yoloDetectForm"  method="post" enctype="multipart/formdata" data-object-detect-url = "{{ request.url_for('list_from_object_detect') }}">
+                    <div class="container">
+                        <label class="custom-file-label" for="original_image">이미지 넣기</label>
+                        <input class="custom-file-input" type="file" id="original_image" name="original_image" accept="image/*" />
+                    </div>
+                    <div>
+                        <button type="submit">이미지 분석</button>
+                    </div>
+                </form>
+            </div>
+            <div id="generateAI_area" class="form-group" style="display: none;">
+                <form id="ImageSelectedForm" method="post" enctype="multipart/formdata" data-create-profile-url = "{{ request.url_for('create_profile') }}">
+                    <div>
+                        <p>탐지된 객체 목록</p>
+                        <div id="detected-list"></div>
+                    </div>
+                    <div>
+                        <div id="ai-list" class="custom-radio">
+                            <label for="ai">사용할 AI</label>
+                            <select class="custom-select" id="ai" name="ai">
+                                <option value="GEMINI" checked>GEMINI</option>
+                                <option value="deepseek-r1-distill-llama-70b" checked>deepseek-r1-distill-llama-70b</option>
+                                <option value="deepseek-r1-distill-qwen-32b" checked>deepseek-r1-distill-qwen-32b</option>
+                                <option value="gemma2-9b-it" checked>gemma2-9b-it</option>
+                                <option value="llama-3.1-8b-instant" checked>llama-3.1-8b-instant</option>
+                                <option value="llama-3.2-1b-preview" checked>llama-3.2-1b-preview</option>
+                                <option value="llama-3.2-3b-preview" checked>llama-3.2-3b-preview</option>
+                                <option value="llama-3.3-70b-specdec" checked>llama-3.3-70b-specdec</option>
+                                <option value="llama-3.3-70b-versatile" checked>llama-3.3-70b-versatile</option>
+                                <option value="llama3-70b-8192" checked>llama3-70b-8192</option>
+                                <option value="llama3-8b-8192" checked>llama3-8b-8192</option>
+                                <option value="mixtral-8x7b-32768" checked>mixtral-8x7b-32768</option>
+                                <option value="qwen-2.5-32b" checked>qwen-2.5-32b</option>
+                                <option value="qwen-2.5-coder-32b" checked>qwen-2.5-coder-32b</option>
+                                <option value="phi3:mini" checked>phi3:mini</option>
+                                <option value="llama3.2" checked>llama3.2</option>
+                                <option value="deepseek-r1:7b" checked>deepseek-r1:7b</option>
+                                <option value="exaone3.5:7.8b" checked>exaone3.5:7.8b</option>
+                                <option value="exaone3.5" checked>exaone3.5</option>
+                                <option value="mistral" checked>mistral</option>
+                                <option value="llama3" checked>llama3</option>
+                            </select>
+                        </div>
+                    </div>
+                    <button type="submit">설정 완료</button>
+                </form>
+            </div>
+        </div>
+        <!-- ai create modal footer -->
+        <div class="modal-footer">
+            <span class="loading-sign spinner-border" style="display: none;"></span>
+            <button type="button" class="btn btn-danger" data-dismiss="modal"> 닫기 </button>
+        </div>
+    </div>
+</div>
