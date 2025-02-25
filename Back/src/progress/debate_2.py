@@ -538,4 +538,8 @@ class Debate_2(Progress):
             self.data["result"] = "draw"
             
         return self.data["result"]
+<<<<<<< HEAD
     
+=======
+    
+>>>>>>> Jason

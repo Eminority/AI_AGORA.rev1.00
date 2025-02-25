@@ -34,7 +34,7 @@ class ProgressManager:
                 # progress type==debate인 경우
                 # participant = {judge = {}, pos = {}, neg = {}}
                 generated_participant = self.set_participant(participants=participant)
-                debate = Debate(participant=generated_participant, generate_text_config=self.generate_text_config["debate"])
+                debate = Debate_2(participant=generated_participant, generate_text_config=self.generate_text_config["debate"])
                 debate.vectorstore = self.ready_to_progress(topic=topic)
                 debate.data["topic"] = topic
                 id = str(self.mongoDBConnection.insert_data("debate", debate.data))

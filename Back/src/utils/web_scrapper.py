@@ -120,3 +120,26 @@ class WebScrapper:
 
         return articles_data
 
+<<<<<<< HEAD
+=======
+    def quit_driver(self):
+        """
+        WebDriver 종료.
+        """
+        if self.driver:
+            self.driver.quit()
+
+
+# # 실행 예시
+# if __name__ == "__main__":
+#     processor = DebateDataProcessor(max_results=3, headless=True)
+#     topic = "AI technology"
+    
+#     articles = processor.get_articles(topic)
+
+#     # 결과 출력
+#     for idx, article in enumerate(articles, 1):
+#         print(f"기사 {idx}:\n{article['content']}...\n")  
+
+#     processor.quit_driver()
+>>>>>>> Jason
