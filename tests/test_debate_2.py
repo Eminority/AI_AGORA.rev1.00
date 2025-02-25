@@ -61,7 +61,7 @@ if __name__ == "__main__":
     detect_persona = DetectPersona(GEMINI_API_KEY=AI_API_KEY["GEMINI"])
 
     #크롤링하는 객체 생성
-    web_scrapper = WebScrapper(api_keys=AI_API_KEY)
+    web_scrapper = WebScrapper()
 
     #토론 주제 확인 객체 - AI 인스턴스
     topic_checker = ai_factory.create_ai_instance("GEMINI")
@@ -105,7 +105,7 @@ if __name__ == "__main__":
     participants = {"pos" : user, "neg" : opponent, "judge_1" : judge_1, "judge_2" : judge_2, "judge_3" : judge_3}
     
     # topic = input("주제 입력 : ")
-    topic = "is picnic good for pet?"
+    topic = "Is it beneficial to walk your pet?"
 
     progress_manager.create_progress("debate", participant=participants, topic=topic)
 
