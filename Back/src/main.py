@@ -64,7 +64,7 @@ detect_persona = DetectPersona(GEMINI_API_KEY=AI_API_KEY["GEMINI"])
 profile_manager = ProfileManager(db=mongodb_connection, detect_persona=detect_persona)
 
 #크롤링하는 객체 생성
-web_scrapper = WebScrapper(api_keys=AI_API_KEY)
+web_scrapper = WebScrapper()
 
 #토론 주제 확인 객체 - AI 인스턴스
 topic_checker = ai_factory.create_ai_instance("GEMINI")
