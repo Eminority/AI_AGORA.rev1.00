@@ -60,7 +60,7 @@ class Debate_2(Progress):
         11) 판사 최종 결론 (evaluate)
         """
         debate = self.data
-        result = {"timestamp": None, "speaker": "", "message": ""}
+        result = {"timestamp": None, "speaker": "", "message": "", "step": debate["status"]["step"]}
 
         # 유효하지 않은 토론이면 메시지 반환
         if debate["_id"] is None:
@@ -376,9 +376,11 @@ class Debate_2(Progress):
         pos_log = [pos_message for pos_message in self.data["debate_log"] if pos_message["speaker"] == "pos"]
         neg_log = [pos_message for pos_message in self.data["debate_log"] if pos_message["speaker"] == "neg"]
         # 찬성, 반대측 반박 로그 (step 5,6)
-        pos_rebuttal = [message for message in self.data["debate_log"] if message["speaker"] == "pos" and self.data["status"]["step"] == 6]
-        neg_rebuttal = [message for message in self.data["debate_log"] if message["speaker"] == "neg" and self.data["status"]["step"] == 5]
-        
+        pos_rebuttal = [pos_message for pos_message in self.data["debate_log"] if pos_message["step"] == 6]
+        neg_rebuttal = [neg_message for neg_message in self.data["debate_log"] if neg_message["step"] == 5]
+
+
+
         print("===========================")
         print("pos_rebuttal: ",pos_rebuttal)
         print("neg_rebuttal: ",neg_rebuttal)
@@ -538,8 +540,3 @@ class Debate_2(Progress):
             self.data["result"] = "draw"
             
         return self.data["result"]
-<<<<<<< HEAD
-    
-=======
-    
->>>>>>> Jason
