@@ -1,5 +1,6 @@
 from .participant_factory import ParticipantFactory
 from ..progress.debate import Debate
+from ..progress.debate_2 import Debate_2
 from ..ai.ai_instance import AI_Instance
 from .mongodb_connection import MongoDBConnection
 from .web_scrapper import WebScrapper

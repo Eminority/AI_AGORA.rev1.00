@@ -16,7 +16,7 @@ from Back.src.utils.mongodb_connection import MongoDBConnection
 from Back.src.utils.vectorstorehandler import VectorStoreHandler  # 벡터스토어 관련 모듈
 from Back.src.ai.ai_factory import AI_Factory
 from Back.src.utils.participant_factory import ParticipantFactory 
-from Back.src.progress.debate import Debate
+from Back.src.progress.debate_2 import Debate_2
 from Back.src.utils.progress_manager import ProgressManager
 from Back.src.utils.web_scrapper import WebScrapper
 from Back.src.utils.detect_persona import DetectPersona
