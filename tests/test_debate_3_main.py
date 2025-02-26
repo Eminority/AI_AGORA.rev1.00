@@ -1,11 +1,11 @@
 from test_debate_3 import Debate
 
 def main():
-    topic = "공격과 방어 중 공격이 더 유리한 전략이다."
+    topic = "코카콜라가 펩시콜라보다 더 뛰어나다."
     debate = Debate(topic)
     
     print("\n=== 토론 시작 ===\n")
-    result = debate.start()
+    result = debate.progress()
     
     print("\n=== 토론 결과 ===\n")
     print(result)

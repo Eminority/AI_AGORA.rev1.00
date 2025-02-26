@@ -1,5 +1,6 @@
 from .participant_factory import ParticipantFactory
 from ..progress.debate import Debate
+from ..progress.debate_3 import Debate as Debate_3
 from ..ai.ai_instance import AI_Instance
 from .mongodb_connection import MongoDBConnection
 from .web_scrapper import WebScrapper
@@ -42,6 +43,34 @@ class ProgressManager:
                 result["result"] = True
                 result["id"] = id
                 return result
+        elif progress_type == "debate_3":
+            # topic check 생략
+            if not participant.get("judge"):
+                participant["judge"] = {"name"  : "judge",
+                                        "ai"    : "GEMINI",
+                                        "img" : None,
+                                        "object_attribute": ""}
+            if not participant.get("next_speaker_agent"):
+                participant["next_speaker_agent"] = {"name"  : "next_speaker_agent",
+                                        "ai"    : "GEMINI",
+                                        "img" : None,
+                                        "object_attribute": ""}
+            if not participant.get("progress_agent"):
+                participant["progress_agent"] = {"name"  : "progress_agent",
+                                        "ai"    : "GEMINI",
+                                        "img" : None,
+                                        "object_attribute": ""}
+            generated_participant = self.set_participant(participants=participant)
+            debate = Debate_3(participant=generated_participant,
+                              generate_text_config=self.generate_text_config["debate"])
+            debate.vectorstore = self.ready_to_progress(topic=topic)
+            debate.data["topic"] = topic
+            id = str(self.mongoDBConnection.insert_data("debate", debate.data))
+            debate.data["_id"] = id
+            self.progress_pool[id] = debate
+            result["result"] = True
+            result["id"] = id
+            return result
         else:
             return result
 
