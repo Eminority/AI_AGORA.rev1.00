@@ -1,19 +1,29 @@
+import sys
+from pathlib import Path
+
+project_root = Path(__file__).resolve().parent.parent
+sys.path.append(str(project_root))
+
+
 from fastapi import FastAPI, Form, Query, File, UploadFile
 from fastapi.responses import FileResponse
 import os
 import yaml
 import json
+from contextlib import asynccontextmanager
+import asyncio
 from dotenv import load_dotenv
-from .ai.ai_factory import AI_Factory
-from .utils.progress_manager import ProgressManager
-from .utils.participant_factory import ParticipantFactory
-from .utils.mongodb_connection import MongoDBConnection
-from .utils.vectorstorehandler import VectorStoreHandler
-from .utils.profile_manager import ProfileManager
-from .yolo.yolo_detect import YOLODetect
-from .utils.image_manager import ImageManager
-from .utils.detect_persona import DetectPersona
-from .utils.web_scrapper import WebScrapper
+from src.ai.ai_factory import AI_Factory
+from src.utils.progress_manager import ProgressManager
+from src.utils.participant_factory import ParticipantFactory
+from src.utils.mongodb_connection import MongoDBConnection
+from src.utils.vectorstorehandler import VectorStoreHandler
+from src.utils.profile_manager import ProfileManager
+from src.yolo.yolo_detect import YOLODetect
+from src.utils.image_manager import ImageManager
+from src.utils.detect_persona import DetectPersona
+from src.utils.web_scrapper import WebScrapper
+
 # 환경 변수 로드
 load_dotenv()
 
@@ -34,11 +44,9 @@ ai_factory = AI_Factory(AI_API_KEY)
 vectorstore_handler = VectorStoreHandler(chunk_size=500, chunk_overlap=50)
 
 
-# Debate 인스턴스 초기화
+# participant factory 인스턴스 초기화
 participant_factory = ParticipantFactory(vectorstore_handler, ai_factory)
 
-# FastAPI 앱 생성
-app = FastAPI()
 
 # YOLO 탐지 객체 생성
 yoloDetector = YOLODetect()
@@ -48,7 +56,6 @@ yoloDetector = YOLODetect()
 config_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../config/config.yaml"))
 with open(config_path, "r", encoding="utf-8") as file:
     config = yaml.safe_load(file)
-
 
 
 # 이미지 관리자 - MongoDB에 업로드, MongoDB에서 다운로드 시켜주는 관리자
@@ -74,70 +81,103 @@ progress_manager = ProgressManager(participant_factory=participant_factory,
                                     web_scrapper=web_scrapper,
                                     mongoDBConnection=mongodb_connection,
                                     topic_checker=topic_checker,
-                                    vectorstore_handler=vectorstore_handler)
+                                    vectorstore_handler=vectorstore_handler,
+                                    generate_text_config=config["generate_text_config"])
 
 ################################## 이 아래로 작성 필요
 
-# 토론 생성 API
-@app.post("/debate")
+
+# FastAPI 앱 생성
+app = FastAPI()
+
+
+# 백그라운드에서 자동으로 토론 계속 진행시키기
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    task = asyncio.create_task(auto_progressing())
+    yield
+    task.cancel()
+
+# 토론 자동진행 메서드
+async def auto_progressing():
+    while (True):
+        for id, progress in progress_manager.progress_pool.items():
+            #progress가 종료되지 않았다면
+            if progress.data.get("status") and progress.data.get("status").get("type") is not "end":
+                #계속 progress 진행하기
+                progress.progress()
+                #진행 후 저장
+                progress_manager.save(id)
+
+
+
+
+# progress 생성 API - 일단 토론만
+@app.post("/progress/debate")
 def create_debate(pos_id: str = Form(...),
                   neg_id: str = Form(...),
-                  topic: str = Form(...)):
+                  topic: str = Form(...)) -> dict:
+    pos = mongodb_connection.select_data_from_id("object", pos_id)
+    pos["img"] = mongodb_connection.select_data_from_id("image", pos.get("img")).get("filename")
+    neg = mongodb_connection.select_data_from_id("object", neg_id)
+    neg["img"] = mongodb_connection.select_data_from_id("image", neg.get("img")).get("filename")
+
+    participant = {"pos":pos, "neg":neg}
+
+    result = progress_manager.create_progress("debate", participant, topic)
     
-    if topic_checker.checktopic(topic):
-        pos = db_connection.select_data_from_id("object", pos_id)
-        pos["img"] = db_connection.select_data_from_id("image", pos.get("img")).get("filename")
-        neg = db_connection.select_data_from_id("object", neg_id)
-        neg["img"] = db_connection.select_data_from_id("image", neg.get("img")).get("filename")
+    return result
 
-        print(pos["img"], " ", neg["img"])
-
-        id = debateManager.create_debate(pos, neg, topic)
-
-        return {"result":True, "message": "토론이 생성되었습니다.", "topic": topic, "id":id}
-    else:
-        return {"result":False, "message": "토론 주제가 적절하지 않습니다."}
 
 # 토론 상태 확인 API
-@app.get("/debate/status")
-def get_debate_status(id:str):
-    return debateManager.debatepool[id].debate["status"]
+# 토론 정보를 받아오면 자동으로 status가 반환되므로 사용하지 않음
+# @app.get("/debate/status")
+# def get_debate_status(id:str):
+#     return progress_manager.progress_pool[id].data["status"]
 
 # 토론 진행 API
-@app.post("/debate/progress")
-def progress_debate(id:str= Form(...),
-                    message:str=Form(...)):
-    if debateManager.debatepool[id].debate["status"]["type"] == "end":
-        return {"message": "토론이 이미 종료되었습니다."}
+# 토론은 자동진행되므로 더 이상 사용되지 않음
+# 자동으로 토론 info 받는걸로 진행
+# @app.post("/debate/progress")
+# def progress_debate(id:str= Form(...),
+#                     message:str=Form(...)):
+#     if progress_manager.progress_pool[id].debate["status"]["type"] == "end":
+#         return {"message": "토론이 이미 종료되었습니다."}
     
-    return {"progress": debateManager.debatepool[id].progress()}
+#     return {"progress": progress_manager.progress_pool[id].progress()}
 
 # 토론 전체 받아오기
-@app.get("/debate/info")
-def get_debate_history(id:str = Query(..., description="토론 id")):
-    if debateManager.debatepool.get(id):
-        debatedata = debateManager.debatepool[id].debate
-        debatedata["_id"] = str(debatedata["_id"])
-        print(debatedata)
-        return debatedata
+@app.get("/progress/info")
+def get_progress_info(id:str = Query(..., description="토론 id")):
+    progress = progress_manager.progress_pool.get(id)
+    if progress:
+        progress_data = progress.data
+        progress_data["_id"] = str(progress_data["_id"])
+        # print(progress_data)
+        return json.dump(progress_data)
     else:
-        return []
+        return {}
 
 
 #실행중인 토론 목록 받아오기
-@app.get("/debate/list")
-def get_debate_list():
-    debatelist = {}
-    for id in debateManager.debatepool.keys():
-        debatelist[id] = debateManager.debatepool[id]["debate"]["topic"]
-    return debatelist
+# { id : {topic:topic, status:status}} 형태의 dict 반환
+@app.get("/progress/list")
+def get_progress_list():
+    progresslist = {}
+    for id in progress_manager.progress_pool.keys():
+        progress = progress_manager.progress_pool[id]
+        progresslist[id] = {
+            "topic": progress.data["topic"],
+            "stauts": progress.data["status"]["type"]
+        }
+    return progresslist
 
 ##이미 생성되어있는 사물 프로필 목록 반환
 @app.get("/profile/list")
 def get_ai_list():
     # id - data 형태로 묶어서 데이터 전송
     result = {id : profile_manager.objectlist[id] for id in profile_manager.objectlist.keys()}
-    print(result)
+    
     return result
 
 
@@ -183,7 +223,7 @@ async def send_image(image_name:str):
     image = os.path.join(IMAGE_SAVE_PATH, image_name)
     if os.path.exists(image):
         return FileResponse(image, media_type="image/png")
-    image_from_db = db_connection.select_data_from_query("image", {"filename":image_name})[0]
+    image_from_db = mongodb_connection.select_data_from_query("image", {"filename":image_name})[0]
     print(">>>>>>>>>>>>>>>>>>")
     print(image_from_db)
     if image_from_db:
@@ -195,4 +235,5 @@ async def send_image(image_name:str):
 
 
 ##실행코드
-# uvicorn backserver:app --host 0.0.0.0 --port 8000 --reload
+# uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+# uvicorn main:app --port 8000 --reload --no-access-log

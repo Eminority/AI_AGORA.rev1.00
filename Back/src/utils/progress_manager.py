@@ -1,9 +1,11 @@
 from .participant_factory import ParticipantFactory
 from ..progress.debate import Debate
+from ..progress.progress import Progress
 from ..ai.ai_instance import AI_Instance
 from .mongodb_connection import MongoDBConnection
 from .web_scrapper import WebScrapper
 from .vectorstorehandler import VectorStoreHandler
+from typing import Dict
 class ProgressManager:
     def __init__(self, participant_factory:ParticipantFactory,
                         web_scrapper:WebScrapper,
@@ -17,8 +19,9 @@ class ProgressManager:
         self.mongoDBConnection = mongoDBConnection
         self.topic_checker = topic_checker
         self.vectorstore_handler = vectorstore_handler
-        self.progress_pool = {}
+        self.progress_pool:Dict[str, Progress] = {}
         self.generate_text_config = generate_text_config
+        self.load_data_from_db()
 
 
     def create_progress(self, progress_type:str, participant:dict, topic:str) -> dict:
@@ -31,12 +34,15 @@ class ProgressManager:
         if progress_type == "debate":
             if self.check_topic_for_debate(topic):
                 # progress type==debate인 경우
-                # participant = {judge = {}, pos = {}, neg = {}}
+                # participant = {pos = {}, neg = {}}
+                # debate에서 judge 없으면 끼워넣기
+                if not participant.get("judge"):
+                    participant["judge"] = {"ai":"GEMINI", "name":"judge"}
                 generated_participant = self.set_participant(participants=participant)
                 debate = Debate(participant=generated_participant, generate_text_config=self.generate_text_config["debate"])
                 debate.vectorstore = self.ready_to_progress(topic=topic)
                 debate.data["topic"] = topic
-                id = str(self.mongoDBConnection.insert_data("debate", debate.data))
+                id = str(self.mongoDBConnection.insert_data("progress", debate.data))
                 debate.data["_id"] = id
                 self.progress_pool[id] = debate
                 result["result"] = True
@@ -90,10 +96,46 @@ class ProgressManager:
         """
         progress id를 받아 해당 아이디의 progress를 저장하는 함수
         """
-        pass
+        self.mongoDBConnection.update_data(progress_id, self.progress_pool[progress_id].data)
 
-    def load(self):
+
+    def load_data_from_db(self):
+        progress_list = self.mongoDBConnection.select_data_from_query("progress")
+        # progress 목록 불러오기
+        for data in progress_list:
+            self.progress_pool[str(data["_id"])] = self.load_progress(data)
+        print (f"{progress_list.count()} 개의 Progress 로드됨!")
+
+    def load_progress(self, data:dict) -> Progress:
         """
-        load해서 self.progress_pool에 등록하는 함수
+        progress를 data만 받아서 pool에 등록하는 메서드
+        end일 경우 데이터만 남기기.
+        end가 아닐 경우 participants의 데이터를 읽어와서 ai 등록
         """
-        pass
+        progress = None
+        id = data.get("_id")
+        if not id:
+            print("아이디 없는 데이터!")
+            return progress
+
+        if data.get("status") and data.get("stauts").get("type") is "end" :
+            progress = Progress(participant={},
+                                            generate_text_config={},
+                                            data=data)
+            return progress
+        elif data.get("status"):
+            # end가 아니고 status가 있는 경우 - ai 등록하기.
+            # debate인 경우 debate로 생성
+            participants = self.set_participant(data.get("participants"))
+            if data.get("type") == "debate":
+                progress = Debate(participant = participants,
+                                  generate_text_config = self.generate_text_config["debate"],
+                                  data = data)
+            else:
+                progress = Progress(participants = participants,
+                                    generate_text_config={},
+                                    data = data)
+            return progress
+        else:
+            print("뭔가 잘못된 데이터!")
+            return progress
