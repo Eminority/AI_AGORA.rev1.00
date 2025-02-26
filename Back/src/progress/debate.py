@@ -25,7 +25,13 @@ class Debate(Progress):
         if self.data == None:
             # debate 필드 초기화
             self.data = {
-                "participants": None,
+                # 다양한 progress형태에 대응하기 위해 type:debate 추가
+                "type": "debate",
+                "participants": {obj : {"id"   : obj.id,
+                                 "name" : obj.name,
+                                  "img" : obj.image,
+                                  "ai"  : obj.ai_instance.model_name}
+                                  for obj in participant},
                 "topic": None,
                 "status": {
                     "type": None,  # "in_progress" 또는 "end" 등
