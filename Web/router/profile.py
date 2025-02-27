@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Request, UploadFile, File
+from fastapi import APIRouter, Request, UploadFile, File, Query
 from fastapi.responses import FileResponse
 from fastapi.templating import Jinja2Templates
 import httpx
@@ -30,11 +30,11 @@ async def profile_page(request:Request):
 
 #profile 상세보기
 @router.get("/profile/detail")
-async def get_profile_detail(request:Request, id:str):
+async def get_profile_detail(request:Request, id:str = Query(...)):
     url = f"{PROGRESS_SERVER}/profile/detail?id={id}"
     with httpx.Client() as client:
         response = client.get(url=url)
-    profile = response.json().get("data")
+    profile = response.json()
     
     return templates.TemplateResponse("profile/detail.html", {"request":request, "profile":profile})
 

@@ -5,19 +5,23 @@
 
 {% block content %}
     <div class="container-sm">
-        <div class="row">
-            <img src="{{ profile.img }}"/>
+        <div class="row text-center">
+            <img class="d-block mx-auto" src="{{ url_for('get_image', filename=profile.img) }}" style="width: 200px; height: 200px;"/>
         </div>
         <div class="container">
-            <h4 id="profile-id">
+            <h4 id="profile-id" class="text-center">
                 {{ profile.name }}
             </h4>
         </div>
-        <ul>
-            <li> 사용 ai : {{ profile.ai }}</li>
-            <li> 성격 : {{ profile.object_attribute }}</li>
-            <li> 생성된 시간 : {{ profile.create_time }}</li>
-        </ul>
-        <button onclick='location.href="/profile"'> 프로필 목록으로</button> 
+        <div class="container d-block mx-auto">
+            <ul>
+                <li> 사용 ai : {{ profile.ai }}</li>
+                <li> 성격 : {{ profile.object_attribute }}</li>
+                <li> 생성된 시간 : {{ profile.create_time }}</li>
+            </ul>
+            <div class="text-center">
+                <button class="btn btn-primary" onclick='location.href="/profile"'> 프로필 목록으로</button> 
+            </div>
+        </div>
     </div>
 {% endblock %}

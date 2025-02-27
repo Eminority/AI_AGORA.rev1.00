@@ -223,7 +223,16 @@ async def get_ai_list():
 
 @app.get("/profile/detail")
 async def get_profile(id:str):
-    result = profile_manager.objectlist.get(id)
+    data = profile_manager.objectlist.get(id).data
+    result = dict(data)
+    img_id = str(data.get("img"))
+    image_from_db = mongodb_connection.select_data_from_id("image", str(img_id))
+    image_from_local = os.path.join(IMAGE_SAVE_PATH, image_from_db.get("filename"))
+    if not os.path.exists(image_from_local):
+        image_byte = base64.b64decode(image_from_db["data"])
+        with open(image_from_local, "wb") as f:
+            f.write(image_byte)
+    result["img"] = image_from_db.get("filename")
     return result
 
 
