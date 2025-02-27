@@ -1,66 +1,78 @@
 import os
 import json
 import time
+import re
 from datetime import datetime
-from dotenv import load_dotenv
-from langchain_google_genai import ChatGoogleGenerativeAI
+
 from langchain.prompts import PromptTemplate
 from langchain.output_parsers import StructuredOutputParser, ResponseSchema
 from langchain_core.exceptions import OutputParserException
 from langchain.schema import SystemMessage, HumanMessage
+from langchain.memory import ConversationBufferMemory
+
 from .progress import Progress
 
-class DebateMemoryManager:
+class DebateMemoryWrapper:
+    """
+    DebateMemoryWrapper는 ConversationBufferMemory를 기반으로 대화 히스토리를 저장하며,
+    스피커별 필터링, 라운드 관리 및 포맷팅된 히스토리 출력 기능을 제공합니다.
+    """
     def __init__(self):
-        self.history = []
+        self.memory = ConversationBufferMemory(memory_key="chat_history", return_messages=True)
+        self.custom_history = []  # 각 메시지의 {'round', 'speaker', 'message'}를 저장
         self.current_round = 1
 
     def save_message(self, speaker: str, message: str, round_number: int = None):
         if round_number is None:
             round_number = self.current_round
-        self.history.append({
-            "round": round_number,
-            "speaker": speaker,
-            "message": message
-        })
+        entry = {"round": round_number, "speaker": speaker, "message": message}
+        self.custom_history.append(entry)
+        formatted = f"[Round {round_number}] {speaker}: {message}"
+        sys_msg = SystemMessage(content=f"{speaker} 역할")
+        human_msg = HumanMessage(content=formatted)
+        self.memory.chat_memory.add_message(sys_msg)
+        self.memory.chat_memory.add_message(human_msg)
 
     def load_all(self):
-        return self.history
+        return self.custom_history
 
     def load_by_speaker(self, speaker: str):
-        return [msg for msg in self.history if msg["speaker"] == speaker]
-
-    def get_last_message(self, speaker: str):
-        msgs = self.load_by_speaker(speaker)
-        if msgs:
-            return msgs[-1]["message"]
-        return None
+        return [msg for msg in self.custom_history if msg["speaker"] == speaker]
 
     def increment_round(self):
         self.current_round += 1
 
     def format_history(self):
-        return "\n".join([f"[Round {msg['round']}] {msg['speaker']}: {msg['message']}" for msg in self.history])
+        return "\n".join([f"[Round {msg['round']}] {msg['speaker']}: {msg['message']}" for msg in self.custom_history])
+
 
 class Debate(Progress):
-    def __init__(self, participant:dict, generate_text_config:dict, data:dict=None):
-        # participant:{"judge": Participant, "pos": Participant, "neg": Participant} 형태.
-        super().__init__(participant=participant,
-                         generate_text_config=generate_text_config,
-                         data=data)
+    """
+    Debate 클래스는 토론 진행 로직을 관리합니다.
 
-        self.data = data
-        if self.data == None:
-            # debate 필드 초기화
+    외부에서 주입되는 에이전트:
+      - participant["pos"]: 찬성측 토론 에이전트
+      - participant["neg"]: 반대측 토론 에이전트
+      - participant["judge"]: 심판 에이전트 (최종 평가)
+      - participant["progress_agent"]: 토론 진행 안내 메시지 생성 에이전트
+      - participant["next_speaker_agent"]: 다음 발언자 결정 에이전트
+
+    각 에이전트는 ai_instance라는 속성을 가지며, generate_text(user_prompt, max_tokens, temperature)를 제공해야 합니다.
+    Progress의 progress()는 dict를, evaluate()는 최종 메시지(str)를 반환하며,
+    data JSON에는 debate_log와 status["step"]이 업데이트되고, topic은 data["topic"]에서 가져옵니다.
+    """
+    def __init__(self, participant: dict, generate_text_config: dict, data: dict = None):
+        super().__init__(participant=participant,
+                         data=data,
+                         generate_text_config=generate_text_config)
+
+        if data is None:
             self.data = {
                 "participants": None,
                 "topic": None,
-                "status": {
-                    "type": None,  # "in_progress" 또는 "end" 등
-                    "step": 0     # 1부터 11까지 단계
-                },
+                "status": {"type": "in_progress", "step": 1},
                 "debate_log": [],
-                "start_time": None,
+                "start_time": datetime.now(),
                 "end_time": None,
                 "summary": {
                     "summary_pos": None,
@@ -68,24 +80,23 @@ class Debate(Progress):
                     "summary_arguments": None,
                     "summary_verdict": None
                 },
-                "result": None
+                "result": None,
             }
+        else:
+            self.data = data
 
+        self.topic = self.data.get("topic", "")
 
-        # Output Parser 설정
         response_schemas = [
-            ResponseSchema(name="speaker", description="The speaker of the response (Pos, Neg, Judge)"),
-            ResponseSchema(name="message", description="The content of the response")
+            ResponseSchema(name="speaker", description="응답한 화자 (Pos, Neg, Judge 등)"),
+            ResponseSchema(name="message", description="생성된 메시지 내용")
         ]
         self.output_parser = StructuredOutputParser.from_response_schemas(response_schemas)
 
-        # 프롬프트 템플릿 구성
-
-        # 후보 리스트를 포함한 next_speaker 프롬프트
         self.next_speaker_candidate_prompt = PromptTemplate(
             input_variables=["history", "candidates"],
             template="""
-            🔹 지금까지의 토론 내용:
+            지금까지의 토론 내용:
             {history}
 
             다음 발언자로 적합한 후보는 다음과 같습니다: {candidates}.
@@ -99,12 +110,11 @@ class Debate(Progress):
             """
         )
 
-        # claim 프롬프트 (Round 1 주장의 경우)
         self.claim_prompt = PromptTemplate(
             input_variables=["topic", "position"],
             template="""
             [SYSTEM: 당신은 토론 참가자입니다. 역할은 자신의 주장을 처음으로 제시하는 것입니다.]
-            당신은 "{topic}"에 대한 토론에 참여하고 있습니다.
+            당신은 "{topic}" 토론에 참여하고 있습니다.
             이번 라운드에서는 자신의 주장을 처음으로 제시해 주세요.
             당신의 입장은 **{position}**입니다.
             주요 근거와 함께 자신의 주장을 명확하게 기술해 주세요.
@@ -118,16 +128,16 @@ class Debate(Progress):
             """
         )
 
-        # argument 프롬프트 (Round 2 이후 반박)
         self.argument_prompt = PromptTemplate(
             input_variables=["topic", "position", "opponent_statements"],
             template="""
             [SYSTEM: 당신은 토론 참가자입니다. 역할은 상대의 주장을 반박하는 것입니다.]
             당신은 "{topic}" 토론에 참여하고 있습니다.
             당신의 입장은 **{position}**입니다.
-            상대 측의 주장:
+            상대측의 주장:
             {opponent_statements}
             위 내용을 바탕으로 논리적인 근거와 예시를 들어 반박해 주세요.
+            또한 응답 시 형식화 된 구조로 작성하세요. 첫째, 둘째, 셋째 등으로 주장을 나누는 방법이 바람직합니다.
             반드시 JSON 형식으로 응답하세요:
             ```json
             {{
@@ -138,7 +148,6 @@ class Debate(Progress):
             """
         )
 
-        # evaluator 프롬프트 (라운드별 평가; 논리력, 신선도, 사실 기반)
         self.evaluator_prompt = PromptTemplate(
             input_variables=["history"],
             template="""
@@ -146,37 +155,36 @@ class Debate(Progress):
             다음은 이번 라운드의 토론 발언 기록입니다:
             {history}
 
-            각 참가자(찬성 측: "Pos", 반대 측: "Neg")의 발언을 아래 기준으로 평가해 주세요.
-            1. 논리력 (Logical Validity) (0~10점)
-            2. 신선도 (Freshness) (0~10점)
-            3. 사실 기반 (Factuality) (0~10점)
+            각 참가자(찬성: "pos", 반대: "neg")의 발언을 아래 기준으로 평가해 주세요.
+            1. 논리력 (0~10점)
+            2. 신선도 (0~10점)
+            3. 사실 기반 (0~10점)
 
             평가 결과는 반드시 JSON 형식으로 반환하세요. 예시:
             {{
                 "evaluations": [
-                    {{"participant": "Pos", "logic_score": 8, "freshness_score": 6, "factuality_score": 9, "warning": ""}},
-                    {{"participant": "Neg", "logic_score": 7, "freshness_score": 5, "factuality_score": 8, "warning": "발언이 반복적입니다."}}
+                    {{"participant": "pos", "logic_score": 8, "freshness_score": 6, "factuality_score": 9, "warning": ""}},
+                    {{"participant": "neg", "logic_score": 7, "freshness_score": 5, "factuality_score": 8, "warning": "반복적입니다."}}
                 ],
                 "message": "라운드 평가 결과입니다."
             }}
             """
         )
 
-        # judge_prompt (최종 판결 프롬프트)
         self.judge_prompt = PromptTemplate(
             input_variables=["topic", "pos_statements", "neg_statements"],
             template="""
             [SYSTEM: 당신은 토론 심판입니다. 역할은 최종 판결을 내리는 것입니다.]
-            당신은 "{topic}" 토론의 최종 판결을 내려야 합니다.
-            아래는 찬성 측(Pos)과 반대 측(Neg)의 발언 내역입니다:
+            주제: "{topic}"
+            아래는 찬성측과 반대측의 발언 내역입니다.
             
-            **찬성 측 (Pos):**
+            **찬성측 (Pos):**
             {pos_statements}
             
-            **반대 측 (Neg):**
+            **반대측 (Neg):**
             {neg_statements}
             
-            이제 어느 쪽이 더 설득력이 있는지, 그리고 그 이유는 무엇인지 상세하게 서술해 주세요.
+            이제 어느 쪽이 더 설득력 있는지, 그리고 그 이유는 무엇인지 상세하게 서술해 주세요.
             반드시 JSON 형식으로 응답하세요:
             ```json
             {{
@@ -187,190 +195,160 @@ class Debate(Progress):
             """
         )
 
-        # progress_agent 프롬프트: Round 1 라운드 안내
         self.progress_round1_prompt = PromptTemplate(
             input_variables=["topic"],
             template="""
             [SYSTEM: 당신은 토론 진행자입니다. 역할은 라운드 안내 및 다음 발언자 소개입니다. 참가자로서 발언하지 마십시오.]
             Round 1 시작:
-            이번 토론의 주제는 "{topic}" 입니다.
-            각 참가자께서는 자신의 주장을 처음으로 제시해 주시기 바랍니다.
+            주제: "{topic}"
+            각 참가자께서는 자신의 주장을 처음으로 제시해 주세요.
             """
         )
 
-        # progress_agent 프롬프트: 이후 라운드 안내 (이전 라운드 평가 결과와 남은 발언 시간 안내)
         self.progress_round_prompt = PromptTemplate(
             input_variables=["evaluation", "pos_time", "neg_time"],
             template="""
             [SYSTEM: 당신은 토론 진행자입니다. 역할은 이전 라운드 평가 결과와 남은 발언 시간을 전달하는 것입니다. 참가자로서 발언하지 마십시오.]
-            이번 라운드의 평가 결과는 다음과 같습니다:
-            {evaluation}
-            남은 발언 시간: 찬성 측 {pos_time:.2f}초, 반대 측 {neg_time:.2f}초.
+            이번 라운드 평가 결과 {evaluation}를 요약해서 전달하세요.
+            남은 발언 시간: 찬성 {pos_time:.2f}초, 반대 {neg_time:.2f}초.
             """
         )
 
-        # progress_agent 프롬프트: 단순 진행 내역 안내용 (발언 시간 결정과 관련 없이 사용)
-        self.progress_prompt = PromptTemplate(
-            input_variables=["history"],
-            template="""
-            [SYSTEM: 당신은 토론 진행자입니다. 역할은 단순히 토론 내역을 확인하는 것입니다. 참가자로서 발언하지 마십시오.]
-            지금까지의 토론 기록:
-            {history}
-            """
+        self.memory_manager = DebateMemoryWrapper()
+
+    def generate_text(self, speaker: str, prompt: str) -> str:
+        """
+        SystemMessage와 HumanMessage를 생성하여, 이를 연결한 문자열을 user_prompt로 전달합니다.
+        temperature, max_tokens 설정값도 반영합니다.
+        """
+        agent_obj = self.participant.get(speaker, {})
+        if agent_obj:
+            speaker_ai = agent_obj.ai_instance
+        else:
+            return ""
+        
+        system_msg = SystemMessage(content=f"{speaker} 역할")
+        human_msg = HumanMessage(content=prompt)
+        combined_prompt = system_msg.content + "\n" + human_msg.content
+        return speaker_ai.generate_text(
+            user_prompt=combined_prompt,
+            max_tokens=self.generate_text_config["max_tokens"],
+            temperature=self.generate_text_config["temperature"]
         )
-
-        self.memory_manager = DebateMemoryManager()
-
-    def _print_progress(self, results: dict) -> dict:
-        speaker = results.get("speaker", "Unknown")
-        message = results.get("message", "No message received.")
-        print(f"\n🔹 [{speaker}] {message}\n")
-        return results
 
     def next_speaker(self, is_final: bool = False) -> dict:
         history_str = self.memory_manager.format_history()
-        if is_final:
-            candidates = "['Judge']"
-        else:
-            candidates = "['Pos', 'Neg']"
-        system_msg = SystemMessage(content="당신은 토론 진행자입니다. 역할은 다음 발언자를 결정하는 것입니다.")
-        human_msg = HumanMessage(content=self.next_speaker_candidate_prompt.format(history=history_str, candidates=candidates))
-        results = self.next_speaker_agent.invoke([system_msg, human_msg])
+        candidates = "['Judge']" if is_final else "['Pos', 'Neg']"
+        prompt = self.next_speaker_candidate_prompt.format(history=history_str, candidates=candidates)
+        result_text = self.generate_text("next_speaker_agent", prompt)
         try:
-            parsed_result = self.output_parser.parse(results.content)
-            next_speaker = parsed_result["speaker"]
-            message = parsed_result["message"]
+            parsed = self.output_parser.parse(result_text)
+            next_speaker = parsed["speaker"]
+            message = parsed["message"]
             if is_final and next_speaker != "Judge":
                 next_speaker = "Judge"
                 message = "최종 판결을 위해 Judge가 선택되었습니다."
-            elif not is_final and next_speaker not in ["Pos", "Neg"]:
-                next_speaker = "Neg"
+            elif not is_final and next_speaker not in ["pos", "neg"]:
+                next_speaker = "neg"
         except OutputParserException:
-            next_speaker = "Neg" if not is_final else "Judge"
+            next_speaker = "neg" if not is_final else "Judge"
             message = f"Defaulting to {next_speaker}."
         self.memory_manager.save_message("System", f"Next speaker decided: {next_speaker}. {message}")
         return {"speaker": next_speaker, "message": message}
 
     def debate_turn(self, speaker: str, round_number: int) -> dict:
         if round_number == 1:
-            prompt = self.claim_prompt.format(topic=self.topic, position=speaker)
+            prompt = self.claim_prompt.format(topic=self.data["topic"], position=speaker)
         else:
-            opponent = "Neg" if speaker == "Pos" else "Pos"
-            opponent_msgs = self.memory_manager.load_by_speaker(opponent)
-            opponent_statements = "\n".join([f"[Round {msg['round']}] {msg['message']}" for msg in opponent_msgs])
-            prompt = self.argument_prompt.format(topic=self.topic, position=speaker, opponent_statements=opponent_statements)
-        if speaker == "Pos":
-            system_msg = SystemMessage(content="당신은 찬성 측 토론 참가자입니다. 자신의 주장을 제시하세요.")
-            human_msg = HumanMessage(content=prompt)
-            results = self.pos_agent.invoke([system_msg, human_msg])
-        elif speaker == "Neg":
-            system_msg = SystemMessage(content="당신은 반대 측 토론 참가자입니다. 자신의 주장을 제시하세요.")
-            human_msg = HumanMessage(content=prompt)
-            results = self.neg_agent.invoke([system_msg, human_msg])
-        else:
-            system_msg = SystemMessage(content="당신은 심판입니다. 최종 판결을 내리세요.")
-            human_msg = HumanMessage(content=prompt)
-            results = self.judge.invoke([system_msg, human_msg])
-        parsed_result = self.output_parser.parse(results.content)
-        message = parsed_result["message"]
+            opponent = "neg" if speaker == "pos" else "pos"
+            opp_msgs = self.memory_manager.load_by_speaker(opponent)
+            opponent_statements = "\n".join([f"[Round {msg['round']}] {msg['message']}" for msg in opp_msgs])
+            prompt = self.argument_prompt.format(topic=self.data["topic"], position=speaker, opponent_statements=opponent_statements)
+        result_text = self.generate_text(speaker, prompt)
+        try:
+            parsed = self.output_parser.parse(result_text)
+            message = parsed["message"]
+        except OutputParserException:
+            message = "응답 파싱 실패"
         self.memory_manager.save_message(speaker, message)
         return {"speaker": speaker, "message": message}
 
-    def decide_continue(self, round_number: int) -> bool:
-        # 라운드별 평가를 진행하지만 최종 토론 종료 조건은 발언 시간에 따름
-        history_str = self.memory_manager.format_history()
-        system_msg_eval = SystemMessage(content="당신은 심판입니다. 이번 라운드의 평가를 진행하세요.")
-        human_msg_eval = HumanMessage(content=self.evaluator_prompt.format(history=history_str))
-        eval_result = self.judge.invoke([system_msg_eval, human_msg_eval])
-        try:
-            eval_json = json.loads(eval_result.content)
-            self.memory_manager.save_message("Evaluator", f"Round evaluation: {json.dumps(eval_json, ensure_ascii=False)}")
-            print("\n[DEBUG] Evaluator JSON:", json.dumps(eval_json, ensure_ascii=False))
-            self._print_progress({"speaker": "Evaluator", "message": json.dumps(eval_json, ensure_ascii=False)})
-        except Exception as e:
-            print("\n[DEBUG] Evaluator parsing error:", e)
-            self.memory_manager.save_message("Evaluator", "Round evaluation parsing failed.")
-            eval_json = {}
-        # 이 함수는 발언 시간이 종료되었는지를 판단하는 용도로는 사용하지 않음.
-        return True
-
-    def evaluate(self, _) -> dict:
-        # 최종 판결: judge_prompt 사용
-        pos_msgs = self.memory_manager.load_by_speaker("Pos")
-        neg_msgs = self.memory_manager.load_by_speaker("Neg")
+    def evaluate(self, _) -> str:
+        pos_msgs = self.memory_manager.load_by_speaker("pos")
+        neg_msgs = self.memory_manager.load_by_speaker("neg")
         pos_statements = "\n".join([f"[Round {msg['round']}] {msg['message']}" for msg in pos_msgs])
         neg_statements = "\n".join([f"[Round {msg['round']}] {msg['message']}" for msg in neg_msgs])
-        prompt = self.judge_prompt.format(topic=self.topic, pos_statements=pos_statements, neg_statements=neg_statements)
-        system_msg = SystemMessage(content="당신은 심판입니다. 최종 판결을 내리세요.")
-        human_msg = HumanMessage(content=prompt)
-        results = self.judge.invoke([system_msg, human_msg])
-        parsed_result = self.output_parser.parse(results.content)
-        self.memory_manager.save_message("Judge", parsed_result["message"])
-        return {"speaker": "Judge", "message": parsed_result["message"]}
+        prompt = self.judge_prompt.format(topic=self.data["topic"], pos_statements=pos_statements, neg_statements=neg_statements)
+        result_text = self.generate_text("judge", prompt)
+        try:
+            parsed = self.output_parser.parse(result_text)
+            message = parsed["message"]
+        except OutputParserException:
+            message = "최종 평가 응답 파싱 실패"
+        self.memory_manager.save_message("Judge", message)
+        self.data["debate_log"] = self.memory_manager.load_all()
+        return message
 
     def progress(self) -> dict:
         debate = self.data
-        result = {"timestamp" : None, "speaker" : "", "message" : ""}
+        result = {"timestamp": None, "speaker": "", "message": ""}
 
-        # 유효하지 않은 토론이면 메시지 반환
         if debate["_id"] is None:
             result["speaker"] = "SYSTEM"
             result["message"] = "유효하지 않은 토론입니다."
             result["timestamp"] = datetime.now()
             return result
-        
-        
-        # 각 참가자에게 주어진 발언 시간(초)
+
+        debate["topic"] = self.data["topic"]
+        debate["status"]["step"] = self.memory_manager.current_round
+
         pos_time_remaining = 20.0
         neg_time_remaining = 20.0
 
-        # 초기 발언자 결정 (일반 라운드에서는 Pos/Neg)
         initial = self.next_speaker(is_final=False)
-        self._print_progress(initial)
+        self.memory_manager.save_message("Progress", f"초기 발언자: {initial['speaker']}")
         first_speaker = initial["speaker"]
-        second_speaker = "Neg" if first_speaker == "Pos" else "Pos"
+        second_speaker = "neg" if first_speaker == "pos" else "pos"
         order = [first_speaker, second_speaker]
 
         round_number = 1
-        while True:
+        max_round = 10  # 최대 라운드 수
+        while round_number <= max_round:
             print(f"=== Round {round_number} 시작 ===")
-            # 라운드 시작 안내: progress_agent가 안내 (평가 결과 및 남은 시간 안내)
             if round_number == 1:
-                system_msg = SystemMessage(content="당신은 토론 진행자입니다. 역할은 라운드 안내입니다. 참가자로서 발언하지 마십시오.")
-                human_msg = HumanMessage(content=self.progress_round1_prompt.format(topic=self.topic))
-                progress_msg = self.progress_agent.invoke([system_msg, human_msg]).content
+                prompt = self.progress_round1_prompt.format(topic=self.data["topic"])
+                prog_text = self.generate_text("progress_agent", prompt)
             else:
-                history_str = self.memory_manager.format_history()
-                system_msg = SystemMessage(content="당신은 토론 진행자입니다. 역할은 이전 라운드 평가 결과와 남은 발언 시간을 전달하는 것입니다. 참가자로서 발언하지 마십시오.")
-                human_msg = HumanMessage(content=self.progress_round_prompt.format(evaluation="이전 라운드 평가 참고", 
-                                                                                   pos_time=pos_time_remaining, 
-                                                                                   neg_time=neg_time_remaining))
-                progress_msg = self.progress_agent.invoke([system_msg, human_msg]).content
-            self._print_progress({"speaker": "Progress", "message": progress_msg})
+                prompt = self.progress_round_prompt.format(evaluation="이전 라운드 평가 참고", 
+                                                           pos_time=pos_time_remaining, 
+                                                           neg_time=neg_time_remaining)
+                prog_text = self.generate_text("progress_agent", prompt)
+            print(prog_text)
+            self.memory_manager.save_message("Progress", prog_text)
 
-            # 각 참가자 발언 및 시간 측정
             for speaker in order:
-                start_time = time.time()
-                turn_result = self.debate_turn(speaker, round_number)
-                end_time = time.time()
-                duration = end_time - start_time
-                self._print_progress(turn_result)
-                if speaker == "Pos":
+                start = time.time()
+                turn = self.debate_turn(speaker, round_number)
+                end = time.time()
+                duration = end - start
+                print(f"{turn['speaker']} : {turn['message']}")
+                if speaker == "pos":
                     pos_time_remaining -= duration
-                    print(f"[DEBUG] Pos remaining time: {pos_time_remaining:.2f} seconds")
-                elif speaker == "Neg":
+                elif speaker == "neg":
                     neg_time_remaining -= duration
-                    print(f"[DEBUG] Neg remaining time: {neg_time_remaining:.2f} seconds")
-            # 발언 시간이 모두 소진되면 종료
             if pos_time_remaining <= 0 or neg_time_remaining <= 0:
-                print("발언 시간이 모두 소진되어 토론을 종료합니다.")
-                final_speaker = self.next_speaker(is_final=True)
-                self._print_progress(final_speaker)
+                final_spk = self.next_speaker(is_final=True)
+                self.memory_manager.save_message("Progress", final_spk["message"])
                 break
 
             round_number += 1
             self.memory_manager.increment_round()
+            debate["status"]["step"] = self.memory_manager.current_round
 
         final_eval = self.evaluate({})
-        self._print_progress(final_eval)
-        return final_eval
+        self.memory_manager.save_message("Judge", final_eval)
+        debate["end_time"] = datetime.now()
+        debate["debate_log"] = self.memory_manager.load_all()
+        debate["status"]["type"] = "end"  # 종료 상태로 설정
+        result = {"timestamp": datetime.now(), "speaker": "Judge", "message": final_eval}
+        return result

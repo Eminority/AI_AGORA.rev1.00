@@ -61,7 +61,7 @@ if __name__ == "__main__":
     detect_persona = DetectPersona(GEMINI_API_KEY=AI_API_KEY["GEMINI"])
 
     #크롤링하는 객체 생성
-    web_scrapper = WebScrapper(api_keys=AI_API_KEY)
+    web_scrapper = WebScrapper()
 
     #토론 주제 확인 객체 - AI 인스턴스
     topic_checker = ai_factory.create_ai_instance("GEMINI")
@@ -96,13 +96,14 @@ if __name__ == "__main__":
     
     
     judge = {"ai": "GEMINI"}
+    next_speaker_agent = {"ai": "GEMINI"}
+    progress_agent = {"ai": "GEMINI"}
 
-
-    participants = {"pos" : user, "neg" : opponent, "judge" : judge}
+    participants = {"pos" : user, "neg" : opponent, "judge" : judge, "next_speaker_agent" : next_speaker_agent, "progress_agent" : progress_agent}
     
     topic = input("주제 입력 : ")
 
-    progress_manager.create_progress("debate", participant=participants, topic=topic)
+    progress_manager.create_progress("debate_3", participant=participants, topic=topic)
 
     debates = progress_manager.progress_pool.values()
     ###############################임시로 입력받는 테스트 코드
