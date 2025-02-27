@@ -1,0 +1,9 @@
+2025-02-27 16:17:06,508 - crewai - INFO - [unknown] 연구 시작
+2025-02-27 16:18:22,692 - crewai - INFO - [unknown] 연구 시작
+2025-02-27 16:19:43,447 - crewai - INFO - [unknown] 연구 시작
+2025-02-27 16:21:25,233 - crewai - INFO - [unknown] 연구 시작
+2025-02-27 16:33:18,164 - crewai - INFO - [unknown] 연구 시작
+2025-02-27 17:04:55,099 - crewai - INFO - [unknown] 연구 시작
+2025-02-27 17:09:21,670 - crewai - INFO - [unknown] 연구 시작
+2025-02-27 17:11:24,373 - crewai - INFO - [unknown] 연구 시작
+2025-02-27 17:16:42,274 - crewai - INFO - [unknown] 연구 시작
