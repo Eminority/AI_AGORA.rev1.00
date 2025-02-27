@@ -20,3 +20,4 @@ wikipedia
 google
 googlesearch-python
 webserver
+duckduckgo-search

@@ -1,0 +1,45 @@
+{% extends 'layout/body.html' %}
+
+{% block title %} AI Agora Profiles {% endblock %}
+{% block add_scriptsheet %}
+<script src="{{ url_for('static', path='js/link_progress_detail.js') }}"></script>
+{% endblock %}
+
+{% block content %}
+    <div class="content-container">
+        <h1>  </h1>
+        <div class="jumbotron text-center">
+            <a href="{{ request.url_for('progress_create_page') }}">
+                <h1>토론 생성하기</h1>
+            </a>
+        </div>
+    </div>
+    
+    <div class="">
+        <div class="progresses_container container-sm">
+            {% for id, data in progress.items() %}
+                <div class="row">
+                    <div class="progress_detail col-sm-12" data-progress-id="{{ id }}">
+                        <div class="media border p-3">
+                            <div class="media-body">
+                                <h4 class="text-center">주제 : {{ data.topic }}</h4>
+                                <h5 class="text-center">참가 AI 목록</h5>
+                                {% for participant in data.participants %}
+                                    <div>
+                                        <h5>{{ participant.name }}</h5>
+                                        <ul>
+                                            <li>{{ participant.position }}</li>
+                                            <li>AI : {{ participant.ai }}</li>
+                                            <li>속성 : {{ participant.object_attribute }}</li>
+                                        </ul>
+                                    </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    </div>
+    </div>
+{% endblock %}

@@ -89,6 +89,10 @@ class ProgressManager:
         """
         result = {}
         for role in participants.keys():
+            # 이름과 ai가 할당되어있지 않다면
+            if not participants[role].get("ai") and not participants[role].get("name"):
+                # id값으로 받아와서 채우기
+                participants[role] = self.mongoDBConnection.select_data_from_id("object", participants[role].get("id"))
             result[role] = self.participant_factory.make_participant(participants[role])
         return result
     
@@ -96,7 +100,7 @@ class ProgressManager:
         """
         progress id를 받아 해당 아이디의 progress를 저장하는 함수
         """
-        self.mongoDBConnection.update_data(progress_id, self.progress_pool[progress_id].data)
+        self.mongoDBConnection.update_data("progress", self.progress_pool[progress_id].data)
 
 
     def load_data_from_db(self):
@@ -104,7 +108,7 @@ class ProgressManager:
         # progress 목록 불러오기
         for data in progress_list:
             self.progress_pool[str(data["_id"])] = self.load_progress(data)
-        print (f"{progress_list.count()} 개의 Progress 로드됨!")
+        print (f"{len(progress_list)} 개의 Progress 로드됨!")
 
     def load_progress(self, data:dict) -> Progress:
         """
@@ -117,11 +121,10 @@ class ProgressManager:
         if not id:
             print("아이디 없는 데이터!")
             return progress
-
-        if data.get("status") and data.get("stauts").get("type") is "end" :
+        if data.get("status") and data["status"].get("type") == "end":
             progress = Progress(participant={},
-                                            generate_text_config={},
-                                            data=data)
+                                        generate_text_config={},
+                                        data=data)
             return progress
         elif data.get("status"):
             # end가 아니고 status가 있는 경우 - ai 등록하기.

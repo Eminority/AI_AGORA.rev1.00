@@ -1,0 +1,28 @@
+{% extends 'layout/body.html' %}
+
+{% block title %} AI Agora {% endblock %}
+{% block add_scriptsheet %} {% endblock %}
+
+{% block content %}
+    <div class="container-sm">
+        <div class="container">
+            <h4 id="progress-topic">
+                {{ progress.topic }}
+            </h4>
+        </div>
+        <div>
+            <div id="progress-log">
+                {% for message in progress.debate_log %}
+                <div class="media border p-3">
+                    <div class="media-body">
+                        <span class="speaker" data-position="{{ message.speaker }}">{{ message.speaker }}</span>
+                        <span class="timestamp">{{ message.timestamp }}</span>
+                        <div class="message">{{ message.message }}</div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        <button onclick='location.href="/progress"'> 대화 목록으로</button> 
+    </div>
+{% endblock %}

@@ -4,6 +4,7 @@ from .mongodb_connection import MongoDBConnection
 from datetime import datetime
 import shutil
 import os
+import json
 from PIL import Image
 class ImageManager:
     def __init__(self, db:MongoDBConnection, img_path:str):
@@ -52,22 +53,20 @@ class ImageManager:
             print(e)
             return {"result":False, "data":e}
         
-    def crop_image(self, image_path:str, objectlist:list) -> dict:
+    def crop_image(self, image_path:str, data:dict) -> str:
         """
-        로컬의 이미지를 잘라서 저장하고 자른 목록을 반환
+        로컬의 이미지를 잘라서 저장하고 자른 이미지파일 경로 반환
+        
         """
         image_name = image_path.split("\\")[-1]
         target_image = Image.open(image_path)
-        result = {}
-        for detected_object in objectlist:
-            bbox = detected_object["bounding_box"]
-            x1 = int(bbox["x1"])
-            x2 = int(bbox["x2"])
-            y1 = int(bbox["y1"])
-            y2 = int(bbox["y2"])
-            cropped_image = target_image.crop((x1, y1, x2, y2))
-            cropped_image_name = f"cropped_{detected_object['object_name']}_{image_name}"
-            cropped_image_path = os.path.join(self.img_path, cropped_image_name)
-            cropped_image.save(cropped_image_path)
-            result[cropped_image_name] = {"name":detected_object["object_name"],"filename":cropped_image_name}
-        return result
+        bbox = data["bounding_box"]
+        x1 = int(bbox["x1"])
+        x2 = int(bbox["x2"])
+        y1 = int(bbox["y1"])
+        y2 = int(bbox["y2"])
+        cropped_image = target_image.crop((x1, y1, x2, y2))
+        cropped_image_name = f"cropped_{data['object_name']}_{image_name}"
+        cropped_image_path = os.path.join(self.img_path, cropped_image_name)
+        cropped_image.save(cropped_image_path)
+        return cropped_image_name

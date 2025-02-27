@@ -31,7 +31,7 @@ class MongoDBConnection:
         return self.db[collection_name].find_one({"_id":ObjectId(id)})
 
     #RDBMS 쿼리문에서의 Select문을 대체 - 쿼리문 작성 필요. 비어있으면 컬렉션 전체 가져옴
-    def select_data_from_query(self, collection_name:str, query:dict={}):
+    def select_data_from_query(self, collection_name:str, query:dict={}) -> list:
         cursor = self.db[collection_name].find(query)
         result = []
         for data in cursor:

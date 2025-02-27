@@ -12,7 +12,7 @@ class YOLODetect:
         self.model = YOLO(model_path)
         self.confidence_threshold = confidence_threshold
 
-    def detect_objects(self, image_path):
+    def detect_objects(self, image_path) -> list:
         """
         이미지에서 객체를 탐지하고 JSON 형식으로 반환
         :param image_path: 처리할 이미지 파일 경로

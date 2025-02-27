@@ -1,0 +1,23 @@
+{% extends 'layout/body.html' %}
+
+{% block title %} AI Agora {% endblock %}
+{% block add_scriptsheet %} {% endblock %}
+
+{% block content %}
+    <div class="container-sm">
+        <div class="row">
+            <img src="{{ profile.img }}"/>
+        </div>
+        <div class="container">
+            <h4 id="profile-id">
+                {{ profile.name }}
+            </h4>
+        </div>
+        <ul>
+            <li> 사용 ai : {{ profile.ai }}</li>
+            <li> 성격 : {{ profile.object_attribute }}</li>
+            <li> 생성된 시간 : {{ profile.create_time }}</li>
+        </ul>
+        <button onclick='location.href="/profile"'> 프로필 목록으로</button> 
+    </div>
+{% endblock %}
