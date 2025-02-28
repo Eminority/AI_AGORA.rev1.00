@@ -1,0 +1,23 @@
+supervisor_task : 
+    description : >
+      {topic}을 보고 요약하며 agent 발언을 받아 간단히 종합 보고서를 작성한다.
+    expected_output : >
+      각 3줄, 총 3문단의 보고서
+
+market_task :
+    description : >
+      {topic}을 보고 간단 시장 분석 제시.
+    expected_output : >
+      {topic} 에 대한 3종류의 시장 분석 결과. 각 분석 결과는 3줄을 넘지 않음.
+
+technical_task :
+    description : >
+      {topic}을 보고 기술적 분석 제시.
+    expected_output : >
+      {topic} 에 대한 3종류의 기술적 분석 결과. 각 분석 결과는 3줄을 넘지 않음.
+
+improvement_task :
+    description : >
+      {topic}을 보고 개선된 아이디어 제시.
+    expected_output : >
+      {topic} 에 대한 3종류의 개선안 도출 결과. 각 분석 결과는 3줄을 넘지 않음.

@@ -2,11 +2,28 @@ import os
 from dotenv import load_dotenv
 import logging
 import google.generativeai as genai  # Google Gemini API 관련 라이브러리
-import litellm  # litellm를 사용하여 LLM 호출 시 provider 정보를 전달합니다.
+import litellm
 from crewai import Agent, Task, Crew, Process
+from langgraph.graph import StateGraph, START, END
+from pydantic import BaseModel
+from typing import Any
 
-# 전역 로그 리스트 (LLM 호출 및 에이전트 실행 로그를 저장)
+# 전역 로그 리스트 및 발언 횟수 기록
 conversation_log = []
+utterance_counts = {}
+
+def increment_utterance(agent_name: str):
+    utterance_counts[agent_name] = utterance_counts.get(agent_name, 0) + 1
+    logger.debug(f"Increment: {agent_name} now has {utterance_counts[agent_name]} utterances.")
+
+def check_termination_condition() -> bool:
+    if not utterance_counts:
+        return False
+    all_spoken = all(count >= 1 for count in utterance_counts.values())
+    many_spoken = sum(1 for count in utterance_counts.values() if count >= 2)
+    condition = all_spoken and many_spoken >= 3
+    logger.debug(f"Termination check: all_spoken={all_spoken}, many_spoken={many_spoken} -> {condition}")
+    return condition
 
 # .env 파일에서 환경 변수 로드
 load_dotenv()
@@ -14,220 +31,189 @@ gemini_api_key = os.getenv("GEMINI_API_KEY")
 if gemini_api_key is None:
     raise ValueError("GEMINI_API_KEY 환경변수가 설정되지 않았습니다.")
 
-# Gemini API 설정
+# Gemini API 설정 (시뮬레이션 응답 사용)
 genai.configure(api_key=gemini_api_key)
 
-# 로깅 설정: 터미널 출력과 파일 저장
+# 로깅 설정: DEBUG 레벨로 설정하여 최대한 자세한 로그 출력
 logger = logging.getLogger("crewai")
-logger.setLevel(logging.INFO)
+logger.setLevel(logging.DEBUG)
 console_handler = logging.StreamHandler()
-console_handler.setLevel(logging.INFO)
+console_handler.setLevel(logging.DEBUG)
 file_handler = logging.FileHandler("crewai_output.txt", encoding="utf-8")
-file_handler.setLevel(logging.INFO)
+file_handler.setLevel(logging.DEBUG)
 formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 console_handler.setFormatter(formatter)
 file_handler.setFormatter(formatter)
 logger.addHandler(console_handler)
 logger.addHandler(file_handler)
 
-
 ###############################################
-# (A) Gemini 전용 커스텀 LLM 클래스
+# (A) Gemini 전용 커스텀 LLM 클래스 (시뮬레이션 응답)
 ###############################################
 class GeminiLLM:
-    _is_custom = True  # 커스텀 LLM임을 명시
+    _is_custom = True
     def __init__(self, api_key):
         self.api_key = api_key
         self._supported_params = {"temperature": True, "max_tokens": True}
         self.model_name = "gemini/gemini-2.0-flash"
-
     @property
     def supported_params(self):
         return self._supported_params
-
     def get_supported_params(self):
         return self._supported_params
-
     def generate(self, prompt: str) -> str:
-        """
-        실제 Gemini API 호출 대신, 입력 프롬프트에 대한 시뮬레이션 응답을 생성합니다.
-        """
+        if not prompt.strip():
+            logger.debug("Empty prompt received in generate(), returning default response.")
+            return "[Default response]"
         response = f"[Simulated Gemini 응답: '{prompt}'에 대한 답변]"
-        conversation_log.append(f"LLM Generate - Prompt: {prompt}")
-        conversation_log.append(f"LLM Generate - Response: {response}")
+        logger.debug(f"LLM.generate() - Prompt: {prompt} / Response: {response}")
+        conversation_log.append(f"LLM - {prompt} => {response}")
         return response
-
     def call(self, prompt: str, **kwargs):
-        """
-        CrewAI 내부에서 LLM 호출 시 사용하는 인터페이스.
-        OpenAI API와 유사한 딕셔너리 구조로 응답을 반환합니다.
-        """
-        response = self.generate(prompt)
-        return {"choices": [{"message": {"content": response}}]}
-
+        try:
+            response = self.generate(prompt)
+            if not response or response.strip() == "":
+                raise ValueError("Invalid response from LLM call - None or empty.")
+            return {"choices": [{"message": {"content": response}}]}
+        except Exception as e:
+            logger.error(f"LLM call error for prompt '{prompt}': {e}")
+            conversation_log.append(f"LLM call error for prompt '{prompt}': {e}")
+            return {"choices": [{"message": {"content": "[Default response]"}}]}
     def __call__(self, prompt: str, **kwargs):
-        """
-        객체를 함수처럼 호출할 수 있도록 __call__ 메서드를 오버라이드합니다.
-        """
         return self.call(prompt, **kwargs)
-
 
 ###############################################
 # (B) LoggingAgent 정의 (CrewAI Agent 확장)
 ###############################################
 class LoggingAgent(Agent):
-    """
-    각 Agent가 작업 시작 및 결과, 그리고 발언(LLM 호출 등)을 로그로 남기며,
-    터미널, 전역 conversation_log, 그리고 별도 텍스트 파일("agent_utterances.txt")에 저장한다.
-    """
     def __init__(self, name, role, goal, backstory, llm, allow_delegation):
         super().__init__(name=name, role=role, goal=goal, backstory=backstory, llm=llm, allow_delegation=allow_delegation)
-        # 추가 재할당은 하지 않습니다.
-    
+        object.__setattr__(self, "agent_name", name)
     def log(self, message):
-        # pydantic 모델의 데이터를 딕셔너리로 가져와 "name" 필드를 사용합니다.
-        agent_name = self.dict().get("name", "unknown")
-        full_message = f"[{agent_name}] {message}"
-        logger.info(full_message)
+        full_message = f"[{self.agent_name}] {message}"
+        logger.debug(full_message)
         conversation_log.append(full_message)
-        # 에이전트 발언을 별도의 텍스트 파일에 즉시 저장
         with open("agent_utterances.txt", "a", encoding="utf-8") as f:
             f.write(full_message + "\n")
-    
+        increment_utterance(self.agent_name)
     def run_task(self, task_description):
-        self.log(f"Task 시작: {task_description}")
-        result = f"Result of '{task_description}' from {self.dict().get('name', 'unknown')}"
-        self.log(f"Task 결과: {result}")
+        self.log(f"Task: {task_description}")
+        result = f"Short result from {self.agent_name}"
+        self.log(f"Result: {result}")
         return result
 
-
 ###############################################
-# (C) 에이전트 정의
+# (C) 에이전트 정의 (간소화)
 ###############################################
-# Supervisor Agent: 전체 연구 과정을 기획하고 특화 에이전트에게 작업을 배분
 supervisor_agent = LoggingAgent(
     name="King Sejong",
     role="대화 조정자",
-    goal="적절한 사람에게 태스크를 부여해서 목표를 이루도록 하는 것",
-    backstory="성군 세종대왕. 적절한 인물을 적절하게 선택함. 자신의 의견은 최소한으로 발언함.",
+    goal="각 agent가 최소 1회 발언하고, 두 번 이상 발언한 agent가 3명 이상이면 전체 작업 종료",
+    backstory="발언은 최대한 간결하게.",
     llm=GeminiLLM(gemini_api_key),
     allow_delegation=True,
 )
-
 agent_disney = LoggingAgent(
     name="Walt_Disney",
-    role="아이디어 정리 도우미",
-    goal="아이디어의 핵심 개념과 가치를 명확하게 정리한다.",
-    backstory="월트 디즈니: 창의적 스토리텔러, 복잡한 아이디어를 단순하게 전달.",
+    role="아이디어 정리",
+    goal="연구 목표에 대해 간단 아이디어 생성",
+    backstory="간결하게 답변.",
     llm=GeminiLLM(gemini_api_key),
     allow_delegation=True,
 )
-
 agent_buffett = LoggingAgent(
     name="Warren_Buffett",
-    role="시장 분석가",
-    goal="아이디어의 시장성을 분석하여 자신의 견해를 간단히 발언.",
-    backstory="워렌 버핏: 오랜 투자 경험으로 시장을 객관적으로 평가.",
+    role="시장 분석",
+    goal="간단 시장 분석 결과 제시",
+    backstory="최소 발언.",
     llm=GeminiLLM(gemini_api_key),
     allow_delegation=True,
 )
-
 agent_gates = LoggingAgent(
     name="Bill_Gates",
-    role="기술 타당성 분석가",
-    goal="아이디어의 기술적 구현 가능성을 분석하여 자신의 견해를 간단하게 발언함.",
-    backstory="빌 게이츠: 기술 혁신과 문제 해결의 대명사.",
+    role="기술 분석",
+    goal="짧은 기술 분석 결과 제시",
+    backstory="간단 명료하게.",
     llm=GeminiLLM(gemini_api_key),
     allow_delegation=True,
 )
-
 agent_oppenheimer = LoggingAgent(
     name="Oppenheimer",
-    role="리스크 분석가",
-    goal="아이디어 실행 시 발생 가능한 위험 요소를 분석하여 자신의 견해를 간단하게 발언함.",
-    backstory="오펜하이머: 핵 개발 책임자로 위험 관리 경험 풍부.",
+    role="리스크 평가",
+    goal="짧은 위험 평가",
+    backstory="최소 발언.",
     llm=GeminiLLM(gemini_api_key),
     allow_delegation=True,
 )
-
 agent_musk = LoggingAgent(
     name="Elon_Musk",
-    role="프로토타입 평가자, 사용자 피드백 수집가",
-    goal="프로토타입을 평가하고 사용자 피드백을 수집하여 간단히 보고함.",
-    backstory="일론 머스크: 혁신적 제품 개선과 빠른 피드백 반영의 선두 주자.",
+    role="피드백 수집",
+    goal="간단 사용자 피드백",
+    backstory="짧게 보고.",
     llm=GeminiLLM(gemini_api_key),
     allow_delegation=True,
 )
-
 agent_edison = LoggingAgent(
     name="Edison",
-    role="아이디어 개선자",
-    goal="현재 아이디어를 발전시켜 더욱 혁신적인 방향의 개선안을 간단히 정리하여 발언.",
-    backstory="에디슨: 발명가로서 기존 아이디어를 새로운 형태로 발전시킨 경험 풍부.",
+    role="아이디어 개선",
+    goal="간단 개선안 제시",
+    backstory="최소 발언.",
     llm=GeminiLLM(gemini_api_key),
     allow_delegation=True,
 )
+final_summary_agent = LoggingAgent(
+    name="Summary_Agent",
+    role="요약",
+    goal="전체 내용을 간단히 요약하고 발언하면 전체 작업 종료",
+    backstory="간결 요약 전문가.",
+    llm=GeminiLLM(gemini_api_key),
+    allow_delegation=False,
+)
 
 ###############################################
-# (D) 작업(Task) 정의 (각 태스크에 입력값 {research_goal} 적용)
+# (D) 작업(Task) 정의 (간소화된 버전)
 ###############################################
 supervisor_task = Task(
-    description=
-    """
-    연구 목표 '{research_goal}'와 각 agent의 발언을 받아들인 후. 다음의 task에 적절히 분배. 
-    모든 task가 한바퀴 돌았다면 작업을 종료함.
-    """,
+    description=" {research_goal}을 보고 연구 목표와 agent 발언을 받아 간단히 종합 보고서를 작성한다.",
     agent=supervisor_agent,
-    expected_output="각 에이전트의 결과물을 종합한 보고서"
+    expected_output="종합 보고서"
 )
-
 classifier_task = Task(
-    description="연구 목표 '{research_goal}'에 대한 아이디어 개념을 정리한다.",
+    description="{research_goal}을 보고 간단 아이디어 생성",
     agent=agent_disney,
-    expected_output="명료화된 아이디어"
+    expected_output="아이디어 리스트"
 )
-
 market_task = Task(
-    description="아이디어 '{research_goal}'의 시장 분석을 정리한다.",
+    description="{research_goal}을 보고 간단 시장 분석 제시",
     agent=agent_buffett,
-    expected_output="개선사항 및 고려사항"
+    expected_output="시장 분석 결과"
 )
-
 technical_task = Task(
-    description="아이디어 '{research_goal}'의 기술적 타당성을 정리한다.",
+    description="{research_goal}을 보고 간단 기술 분석 제시",
     agent=agent_gates,
-    expected_output="사용해야할 기술과 아이디어의 불가능한 부분을 정리한 보고서."
+    expected_output="기술 분석 결과"
 )
-
 risk_task = Task(
-    description="아이디어 '{research_goal}'의 위험성과 위기 분석을 실시한다.",
+    description="{research_goal}을 보고 간단 위험 평가 제시",
     agent=agent_oppenheimer,
-    expected_output="아이디어의 위험성에 대한 간단한 보고서."
+    expected_output="위험 평가 결과"
 )
-
-user_task = Task(
-    description="아이디어 '{research_goal}'를 사용한 가상 시나리오에 따른 사용자 피드백을 실시한다.",
-    agent=agent_musk,
-    expected_output="프로토타입 사용 보고서 및 사용자 피드백"
-)
-
-improve_task = Task(
-    description="아이디어 '{research_goal}'의 개선 사항을 고려하여 아이디어를 발전시킨다.",
-    agent=agent_edison,
-    expected_output="아이디어 개선안 보고서."
+final_summary_task = Task(
+    description="전체 agent 발언과 결과를 간단히 요약",
+    agent=final_summary_agent,
+    expected_output="최종 요약 보고서"
 )
 
 ###############################################
-# (E) Crew 구성 (manager_agent는 agents 리스트에서 제외)
+# (E) Crew 구성 (간소화)
 ###############################################
 research_crew = Crew(
     agents=[
         agent_buffett,
         agent_disney,
-        agent_edison,
         agent_gates,
         agent_oppenheimer,
-        agent_musk
+        final_summary_agent
     ],
     tasks=[
         supervisor_task,
@@ -235,41 +221,92 @@ research_crew = Crew(
         market_task,
         technical_task,
         risk_task,
-        user_task,
-        improve_task
+        final_summary_task
     ],
     process="sequential",
-    manager_agent=supervisor_agent,     # Supervisor Agent가 매니저로 지정됨
+    manager_agent=supervisor_agent,
     verbose=True
 )
 
 ###############################################
-# (F) 실행 예시 (main 함수)
+# (F) LangGraph 정적 워크플로우 구성 및 실행
 ###############################################
-if __name__ == "__main__":
-    input_data  = {"research_goal" : """CrewAI를 사용한 Multi AI Agent 시스템 구현 아이디어
-                   1. 유명인들의 행동과 발언, 검색 가능한 데이터를 모아 LLM에게 인격을 형성.
-                   2. 각 LLM별로 해야할 TASK를 분배.
-                   3. LangChain으로 Task의 순서를 최적화.
-                   4. 유명인이 내가 하는 말을 듣고 대답해주는 Multi ai agent 시스템 구현.
-                   """}
-    supervisor_agent.log("연구 시작")
-    
-    # 태스크 실행 결과 수집
+class CrewState(BaseModel):
+    research_goal: str
+    results: dict = {}
+
+initial_state = CrewState(
+    research_goal="""CrewAI를 사용한 Multi AI Agent 시스템 구현 아이디어
+    1. 데이터 수집 최소화.
+    2. TASK 간소화.
+    3. 전체 결과 간단 요약.
+    """,
+    results={}
+)
+
+graph = StateGraph(state_schema=CrewState)
+graph.state = initial_state
+
+def execute_crewai(state: CrewState) -> CrewState:
+    input_data = {"research_goal": state.research_goal}
+    # 각 Task의 description에 research_goal을 주입
+    for task in research_crew.tasks:
+        formatted = task.description.format(**input_data)
+        task.description = formatted
+        conversation_log.append(f"[Debug] Formatted Task for {task.agent.dict().get('name','unknown')}: {formatted}")
+    logger.debug(f"Input data for CrewAI: {input_data}")
+    conversation_log.append(f"[Debug] Input data: {input_data}")
     results = research_crew.kickoff(input_data)
+    conversation_log.append(f"[Debug] CrewAI 결과: {results}")
+    state.results = results
+    if final_summary_agent.agent_name in results:
+        conversation_log.append("[Supervisor] 최종 요약 태스크 실행됨. 작업 종료.")
+    return state
+
+graph.add_node("execute_crewai", execute_crewai)
+graph.add_edge(START, "execute_crewai")
+graph.add_edge("execute_crewai", END)
+
+compiled = graph.compile()
+try:
+    final_state = compiled.invoke(initial_state.dict())
+except Exception as e:
+    logger.error(f"그래프 실행 중 오류 발생: {e}")
+    conversation_log.append(f"[Error] 그래프 실행 중 오류 발생: {e}")
+    final_state = initial_state
+finally:
+    try:
+        final_state_dict = final_state.dict() if hasattr(final_state, "dict") else final_state
+    except Exception as e:
+        logger.error(f"최종 상태 dict 변환 오류: {e}")
+        conversation_log.append(f"[Error] 최종 상태 dict 변환 오류: {e}")
+        final_state_dict = {}
+    results = final_state_dict.get("results", {})
+    if hasattr(results, "dict"):
+        results = results.dict()
     
-    # 각 에이전트의 결과를 종합하여 최종 보고서 작성
+    final_summary_agent_name = final_summary_agent.agent_name
+    task_output: Any = results.get(final_summary_agent_name, "No Task Output")
+    crew_output: Any = final_state_dict.get("output", "No Crew Output")
+    
     final_report = "\n".join([f"{agent_name}: {result}" for agent_name, result in results.items()])
     supervisor_agent.log("최종 보고서 작성 완료")
     supervisor_agent.log("\n" + final_report)
     
-    # 최종 보고서를 메모장(텍스트 파일)에 저장
-    with open("co_scientist_log.txt", "w", encoding="utf-8") as f:
-        f.write("=== AI Co-Scientist Process Log ===\n\n")
-        for line in conversation_log:
-            f.write(line + "\n")
-        f.write("\n=== Final Result ===\n")
-        f.write(final_report + "\n")
+    try:
+        with open("multi_agent_log.txt", "w", encoding="utf-8") as f:
+            f.write("=== AI Co-Scientist Process Log ===\n\n")
+            for line in conversation_log:
+                f.write(line + "\n")
+            f.write("\n=== Final Report ===\n")
+            f.write(final_report + "\n")
+            f.write("\n=== Task Output ===\n")
+            f.write(str(task_output) + "\n")
+            f.write("\n=== Crew Output ===\n")
+            f.write(str(crew_output) + "\n")
+    except Exception as e:
+        logger.error(f"파일 저장 중 오류 발생: {e}")
+        conversation_log.append(f"[Error] 파일 저장 중 오류 발생: {e}")
     
     print("\n=== Done! ===")
-    print("전체 실행 로그와 최종 결과가 'co_scientist_log.txt'에 저장되었습니다.")
+    print("전체 실행 로그와 최종 결과가 'multi_agent_log.txt'에 저장되었습니다.")
