@@ -43,12 +43,13 @@ class ImageManager:
             return {"result":False, "data":e}
         
     def save_image_in_local_from_form(self, file:UploadFile=File(...)) -> dict:
-        save_path = f"{self.img_path}\\{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}_{file.filename}.png"
+        new_filename = f"{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}_{file.filename}.png"
+        save_path = f"{self.img_path}\\{new_filename}"
         try:
             with open(save_path, "wb") as buffer:
                 shutil.copyfileobj(file.file, buffer)
 
-            return {"result":True, "data":save_path}
+            return {"result":True, "data":save_path, "filename":new_filename}
         except Exception as e:
             print(e)
             return {"result":False, "data":e}

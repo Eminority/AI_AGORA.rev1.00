@@ -87,7 +87,7 @@
                     generateRadioButtons(result.data);
                 } else if (result.result === true){ //통신에 성공하고 객체 탐지에 실패한 경우
                     alert("객체 탐지에 실패했습니다. 객체를 직접 입력합니다.");
-                    generateInputText();
+                    generateInputText(result.data);
                 }
                 document.getElementById("generateAI_area").style = "display: block;";
             });
@@ -106,7 +106,7 @@
                 })
             }
 
-            function generateInputText(){
+            function generateInputText(data){
                 const container = document.getElementById("detected-list");
                 container.innerHTML = ""; //기존 내용 초기화
                 const label = document.createElement("label");
@@ -115,6 +115,7 @@
                 const inputbox = document.createElement("input");
                 inputbox.setAttribute("type", "text");
                 inputbox.setAttribute("name", "name");
+                inputbox.setAttribute("data-filename", data[0].filename);
                 container.appendChild(label);
                 container.appendChild(inputbox);
             }
@@ -125,14 +126,19 @@
                 event.preventDefault();
                 const selectedObject = document.querySelector('input[name="name"]:checked');
                 const selectedAI = document.getElementById('ai')
-                if (!selectedObject) {
+                
+                const writedObject = document.querySelector('input[name="name"]')
+                if (!selectedObject && !writedObject) {
+
                     alert("객체를 선택하세요.");
                     return;
                 }
 
+                
+
                 const requestData = {
-                    "selected_object":selectedObject.value,
-                    "img": selectedObject.getAttribute("data-filename"),
+                    "selected_object":selectedObject ? selectedObject.value : writedObject.value,
+                    "img": selectedObject? selectedObject.getAttribute("data-filename") : writedObject.getAttribute("data-filename"),
                     "ai": selectedAI.value
                 }
                 // FastAPI 서버에 선택한 객체 정보 전송
@@ -147,8 +153,11 @@
 
                 const result = await response.json();
                 console.log("선택한 객체:", result);
-
-                alert(`선택한 객체 ${selectedObject.value} 로 AI가 생성중입니다...`);
+                if (selectedObject){
+                    alert(`선택한 객체 ${selectedObject.value} 로 AI가 생성중입니다...`);
+                } else if (writedObject){
+                    alert(`입력한 객체 ${writedObject.value} 로 AI가 생성중입니다...`);
+                }
             });
         })
 

@@ -120,7 +120,7 @@ class Debate_2(Progress):
             - Provide **at least three strong arguments** supporting your stance.  
             - Use **logical reasoning, real-world examples, and data** to reinforce your claims.  
             - Avoid general descriptions of the topic—focus only on defending your position.  
-
+            
             ---
 
             ### **Your Response Format:**  
@@ -139,6 +139,8 @@ class Debate_2(Progress):
 
             Be concise yet persuasive. Provide factual support where applicable.
             """
+
+            prompt += f"Highlight the unique characteristics in your argument. Think from {self.participant[result['speaker']].name}'s perspective."
             result["message"] = self.generate_text(result["speaker"], prompt)
 
         elif step == 3:
@@ -171,6 +173,8 @@ class Debate_2(Progress):
 
             Be concise yet persuasive. Provide factual support where applicable.
             """
+            prompt += f"Highlight the unique characteristics in your argument. Think from {self.participant[result['speaker']].name}'s perspective."
+            
             result["message"] = self.generate_text(result["speaker"], prompt)
 
         elif step == 4:
@@ -218,6 +222,8 @@ class Debate_2(Progress):
             **Previous Statements:** {self.data['debate_log'][-3]}  
             """
 
+            prompt += f"Highlight the unique characteristics in your argument. Think from {self.participant[result['speaker']].name}'s perspective."
+            
             result["message"] = self.generate_text(result["speaker"],prompt)
         elif step == 6:
             # 6. 찬성 측 변론
@@ -257,6 +263,10 @@ class Debate_2(Progress):
             **Debate Topic:** {self.data['topic']}  
             **Previous Statements:** {self.data['debate_log'][-3]}  
             """
+            
+
+            prompt += f"Highlight the unique characteristics in your argument. Think from {self.participant[result['speaker']].name}'s perspective."
+            
             result["message"] = self.generate_text(result["speaker"],prompt)
 
         elif step == 7:
@@ -342,6 +352,9 @@ class Debate_2(Progress):
             **Debate Topic:** {self.data['topic']}  
             **Previous Statements:** {self.data['debate_log'][:-2]}  
             """
+
+            prompt += f"Highlight the unique characteristics in your argument. Think from {self.participant[result['speaker']].name}'s perspective."
+            
             
             result["message"] = self.generate_text(result["speaker"],prompt)
 

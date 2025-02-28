@@ -279,7 +279,7 @@ async def object_detect(file: UploadFile = File(...)) -> dict:
             result_data["detected"] = True
         else:
             result_data["detected"] = False
-            result_data["data"] = [{"filename": local_image_data.get("data")}]
+            result_data["data"] = [{"filename": local_image_data.get("filename")}]
     return result_data
 
 

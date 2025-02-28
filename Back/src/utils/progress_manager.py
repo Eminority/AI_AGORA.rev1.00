@@ -43,7 +43,8 @@ class ProgressManager:
                     participant["judge"] = {"ai":"GEMINI", "name":"judge"}
                 generated_participant = self.set_participant(participants=participant)
                 progress = Debate(participant=generated_participant, generate_text_config=self.generate_text_config["debate"])
-                progress.vectorstore = self.ready_to_progress(topic=topic)
+                #progress.vectorstore = self.ready_to_progress(topic=topic)
+                progress.vectorstore = self.ready_to_progress_with_personality(topic, participant)
         elif progress_type == "debate_2":
             # self.chect_topic_for_debate(topic) 생략
             if not participant.get("judge_1"):
@@ -72,6 +73,13 @@ class ProgressManager:
         articles = self.web_scrapper.get_articles(topic=topic)
         return self.vectorstore_handler.vectorstoring(articles=articles)
 
+    def ready_to_progress_with_personality(self, topic, participants):
+        articles = []
+        articles.extend(self.web_scrapper.get_articles(topic=topic))
+        for participant in participants:
+            articles.extend(self.web_scrapper.get_articles(participant["name"]))
+        print(articles)
+        return self.vectorstore_handler.vectorstoring(articles)
     
     def check_topic_for_debate(self, topic:str) -> bool:
         """
