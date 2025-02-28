@@ -19,7 +19,7 @@ class Debate_2(Progress):
                          data=data)
 
         # 총 11단계 진행
-        self.max_step = 11
+        self.max_step = 12
 
         self.data = data
         if self.data == None:
@@ -293,7 +293,7 @@ class Debate_2(Progress):
             **Debate Topic:** {self.data['topic']}  
             **Previous Statements:** {self.data['debate_log'][:-2]}  
             """
-
+    
             result["message"] = self.generate_text(result["speaker"],prompt)
 
         elif step == 9:
@@ -347,14 +347,19 @@ class Debate_2(Progress):
             # 11. 판사가 최종 결론
             result["speaker"] = "judge_1"
             result["message"] = self.evaluate()['result']
-            debate["status"]["type"] = "end"
+
         
+        elif step == 12:
+            result["speaker"] = "summerizer"
+            result["message"] = self.summerizer()['result']
+            debate["status"]["type"] = "end"
+
         else:
             result["speaker"] = "SYSTEM"
             result["message"] = "The debate has already concluded."
         
         debate["debate_log"].append(result)
-
+            # print(self.summerizer())
         # if result["speaker"] == "pos":
         #     debate["debate_log_pos"].append(result["message"])
 
@@ -528,6 +533,9 @@ class Debate_2(Progress):
                 self.data["result"] = "draw"
         else:
             self.data["result"] = "draw"
+        
+
+
 
         return {
             "result": self.data["result"],
@@ -540,3 +548,21 @@ class Debate_2(Progress):
             "match_pos": match_pos,
             "match_neg": match_neg
             }
+    
+    def summerizer(self):
+        prompt_summary=f"""
+        다음은 토론에 대한 전체 기록입니다. 이를 아래 형식으로 한글로 요약해 주세요.
+
+        "주제": [토론의 주요 주제를 간결하게 정리]  
+        "찬성 측 주장": [찬성 측의 핵심 주장 요약]  
+        "반대 측 주장": [반대 측의 핵심 주장 요약]  
+        "찬성 측 변론": [찬성 측이 반론에 대응한 내용]  
+        "반대 측 변론": [반대 측이 반론에 대응한 내용]  
+        "최종 판결": [토론의 결론 또는 심사 결과 요약]  
+
+        아래는 토론 기록입니다:
+        {self.data['debate_log']}
+        """
+        return self.generate_text("summerizer", prompt_summary)
+
+        

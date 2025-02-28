@@ -38,8 +38,6 @@ class ProgressManagerAuto:
         print(topic)
 
         
-        
-
         if progress_type == "debate":
             generated_participant = self.set_participant(participants=participant)
             debate = Debate_2(participant=generated_participant, generate_text_config=self.generate_text_config["debate"])

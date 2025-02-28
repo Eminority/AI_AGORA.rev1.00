@@ -6,6 +6,7 @@ from .mongodb_connection import MongoDBConnection
 from .web_scrapper import WebScrapper
 from .vectorstorehandler import VectorStoreHandler
 from ..ai.model.gemini import GeminiAPI
+
 class ProgressManagerAutoCrewAI:
     def __init__(self, participant_factory:ParticipantFactory,
                         web_scrapper:WebScrapper,

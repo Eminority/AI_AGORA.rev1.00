@@ -60,10 +60,7 @@ class VectorStoreHandler:
         3. 모든 Document를 하나의 리스트로 합친 후, FAISS.from_documents()를 사용하여 벡터 스토어를 생성한다.
         
         Returns:
-            생성된 벡터스토어 객체.
-        
-        Raises:
-            ValueError: 유효한 기사 내용이 없거나 벡터 스토어 생성에 실패한 경우.
+            생성된 벡터스토어 객체 (데이터가 없을 경우 빈 벡터스토어 반환).
         """
         # 1. 유효한 기사 필터링 (본문이 빈 문자열이거나 에러 문구인 경우 제외)
         valid_articles = [
@@ -71,8 +68,6 @@ class VectorStoreHandler:
             if article.get("content", "").strip() and 
                article.get("content", "").strip() != "❌ 본문을 가져오지 못했습니다."
         ]
-        if not valid_articles:
-            raise ValueError("유효한 기사 내용이 없습니다. 크롤링 데이터를 확인하세요.")
         
         # 2. 각 기사의 본문을 청크(Document 객체)로 분할
         all_documents = []
@@ -82,12 +77,9 @@ class VectorStoreHandler:
             if docs:
                 all_documents.extend(docs)
         
+        # 3. FAISS 벡터스토어 생성 (데이터가 없을 경우 빈 벡터스토어 반환)
         if not all_documents:
-            raise ValueError("문서를 분할한 결과, 유효한 텍스트 청크가 없습니다.")
+            return create_vectorstore([], self.embeddings)
         
-        # 3. FAISS 벡터스토어 생성
         vectorstore = create_vectorstore(all_documents, self.embeddings)
-        if not vectorstore:
-            raise ValueError("벡터스토어 생성에 실패했습니다.")
-        
         return vectorstore
