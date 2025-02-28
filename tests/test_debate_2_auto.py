@@ -100,9 +100,9 @@ if __name__ == "__main__":
     judge_1 = {"ai": "GEMINI"}
     judge_2 = {"ai": "GEMINI"}
     judge_3 = {"ai": "GEMINI"}
+    summerizer = {"ai": "GEMINI"}
 
-
-    participants = {"pos" : user, "neg" : opponent, "judge_1" : judge_1, "judge_2" : judge_2, "judge_3" : judge_3}
+    participants = {"pos" : user, "neg" : opponent, "judge_1" : judge_1, "judge_2" : judge_2, "judge_3" : judge_3, "summerizer":summerizer}
     
     # topic = input("주제 입력 : ")
     # topic = "Is it beneficial to walk your pet?"
