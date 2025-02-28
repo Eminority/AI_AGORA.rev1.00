@@ -26,9 +26,9 @@
                                 <h5 class="text-center">참가 AI 목록</h5>
                                 {% for participant in data.participants %}
                                     <div>
-                                        <h5>{{ participant.name }}</h5>
+                                        <h5>{{ participant.position }}</h5>
                                         <ul>
-                                            <li>{{ participant.position }}</li>
+                                            <li>{{ participant.name }}</li>
                                             <li>AI : {{ participant.ai }}</li>
                                             <li>속성 : {{ participant.object_attribute }}</li>
                                         </ul>

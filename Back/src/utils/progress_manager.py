@@ -1,10 +1,13 @@
 from .participant_factory import ParticipantFactory
 from ..progress.debate import Debate
 from ..progress.progress import Progress
+from ..progress.debate_2 import Debate_2
 from ..ai.ai_instance import AI_Instance
 from .mongodb_connection import MongoDBConnection
 from .web_scrapper import WebScrapper
 from .vectorstorehandler import VectorStoreHandler
+from .profile_manager import ProfileManager
+import asyncio
 from typing import Dict
 class ProgressManager:
     def __init__(self, participant_factory:ParticipantFactory,
@@ -30,7 +33,7 @@ class ProgressManager:
         반환값은 {"result":성공여부(bool), "id":생성된 progress id(str)}
         """
         result = {"result":False, "id":None}
-
+        progress = None
         if progress_type == "debate":
             if self.check_topic_for_debate(topic):
                 # progress type==debate인 경우
@@ -39,17 +42,28 @@ class ProgressManager:
                 if not participant.get("judge"):
                     participant["judge"] = {"ai":"GEMINI", "name":"judge"}
                 generated_participant = self.set_participant(participants=participant)
-                debate = Debate(participant=generated_participant, generate_text_config=self.generate_text_config["debate"])
-                debate.vectorstore = self.ready_to_progress(topic=topic)
-                debate.data["topic"] = topic
-                id = str(self.mongoDBConnection.insert_data("progress", debate.data))
-                debate.data["_id"] = id
-                self.progress_pool[id] = debate
-                result["result"] = True
-                result["id"] = id
-                return result
-        else:
-            return result
+                progress = Debate(participant=generated_participant, generate_text_config=self.generate_text_config["debate"])
+                progress.vectorstore = self.ready_to_progress(topic=topic)
+        elif progress_type == "debate_2":
+            # self.chect_topic_for_debate(topic) 생략
+            if not participant.get("judge_1"):
+                participant["judge_1"] = {"ai":"GEMINI", "name":"judge_1"}
+            if not participant.get("judge_2"):
+                participant["judge_2"] = {"ai":"GEMINI", "name":"judge_2"}
+            if not participant.get("judge_3"):
+                participant["judge_3"] = {"ai":"GEMINI", "name":"judge_3"}
+            generated_participant = self.set_participant(participants=participant)
+            progress = Debate_2(participant=generated_participant, generate_text_config=self.generate_text_config["debate"])
+        
+        if progress:
+            progress.data["topic"] = topic
+            id = str(self.mongoDBConnection.insert_data("progress", progress.data))
+            progress.data["_id"] = id
+            self.progress_pool[id] = progress
+            result["result"] = True
+            result["id"] = id
+        print(f"progress 생성됨! {type(progress)}, {progress.data['topic']}")
+        return result
 
     def ready_to_progress(self, topic):
         """
@@ -108,6 +122,7 @@ class ProgressManager:
         # progress 목록 불러오기
         for data in progress_list:
             self.progress_pool[str(data["_id"])] = self.load_progress(data)
+            print(str(data["_id"]))
         print (f"{len(progress_list)} 개의 Progress 로드됨!")
 
     def load_progress(self, data:dict) -> Progress:
@@ -134,11 +149,47 @@ class ProgressManager:
                 progress = Debate(participant = participants,
                                   generate_text_config = self.generate_text_config["debate"],
                                   data = data)
+            elif data.get("type") == "debate_2":
+                progress = Debate_2(participant = participants,
+                                  generate_text_config = self.generate_text_config["debate"],
+                                  data = data)
             else:
-                progress = Progress(participants = participants,
+                progress = Progress(participant = participants,
                                     generate_text_config={},
                                     data = data)
             return progress
         else:
             print("뭔가 잘못된 데이터!")
             return progress
+        
+
+    async def auto_progress_create(self, profile_manager:ProfileManager):
+        topic = self.auto_topic_create()
+        profiles = list(profile_manager.objectlist.keys())
+        print(f"{len(profiles)} 개 프로필 로드됨")
+        front = 0
+        while front < len(profiles) -1:
+            pos = {"id":profiles[front]}
+            back = front + 1
+            while back < len(profiles):
+                neg = {"id":profiles[back]}
+                print(f"{front}, {back}")
+                try:
+                    participants = {"pos":pos, "neg":neg}
+                    await asyncio.to_thread(self.create_progress, "debate_2", participants, topic)
+                    participants2 = {"pos":neg, "neg":pos}
+                    await asyncio.to_thread(self.create_progress, "debate_2", participants2, topic)
+                except Exception as e:
+                    print(f"Progress 생성 중 오류 {e} 발생")
+                back += 1
+            front += 1
+            await asyncio.sleep(1)
+            
+        
+        
+
+    def auto_topic_create(self) -> str:
+        user_prompt = "Return a single debate topic in one sentence. Keep it concise and argumentative. No extra details."
+        topic = self.topic_checker.generate_text(user_prompt,temperature=0.5,max_tokens=100)
+        print(topic)
+        return topic

@@ -30,7 +30,8 @@ class Debate(Progress):
                 "participants": {position : {"id"   : data.id,
                                  "name" : data.name,
                                   "img" : data.img,
-                                  "ai"  : data.ai_instance.model_name}
+                                  "ai"  : data.ai_instance.model_name,
+                                  "object_attribute": data.object_attribute}
                                   for position, data in participant.items()},
                 "topic": None,
                 "status": {

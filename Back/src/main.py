@@ -25,6 +25,7 @@ from src.utils.detect_persona import DetectPersona
 from src.utils.web_scrapper import WebScrapper
 from src.schema.schema import ProfileCreateRequestData, ProgressCreateRequestData
 import base64
+import copy
 
 # 환경 변수 로드
 load_dotenv()
@@ -90,6 +91,32 @@ progress_manager = ProgressManager(participant_factory=participant_factory,
 
 
 
+# progress 자동진행 메서드
+auto_progress_create_task = None
+async def auto_progressing():
+    global auto_progress_create_task
+    while (True):
+        try:
+            count = 0
+            progress_list = copy.deepcopy([progresses.data for progresses in progress_manager.progress_pool.values()])
+            for progressdata in progress_list:
+                #progress가 종료되지 않았다면
+                if progressdata.get("status") and progressdata.get("status").get("type") != "end":
+                    count += 1
+                    #계속 progress 진행하기
+                    id = str(progressdata.get("_id", ""))
+                    if id and id in progress_manager.progress_pool.keys():
+                        result = progress_manager.progress_pool[id].progress()
+                        print(f"====\nprogress step : {result.get('step')}\n{result['speaker']} 가 말했음")
+                        progress_manager.save(id)
+                await asyncio.sleep(1)
+            if count == 0 and (auto_progress_create_task is None or auto_progress_create_task.done()):
+                print("자동 주제 생성 시작")
+                auto_progress_create_task = asyncio.create_task(progress_manager.auto_progress_create(profile_manager))
+        except Exception as e:
+            print(f"오류 발생 : {e}")
+        await asyncio.sleep(5)
+
 
 # 백그라운드에서 자동으로 토론 계속 진행시키기
 @asynccontextmanager
@@ -98,20 +125,6 @@ async def lifespan(app: FastAPI):
     yield
     task.cancel()
 
-# progress 자동진행 메서드
-async def auto_progressing():
-    while (True):
-        try:
-            for id, progress in progress_manager.progress_pool.items():
-                #progress가 종료되지 않았다면
-                if progress.data.get("status") and progress.data.get("status").get("type") != "end":
-                    #계속 progress 진행하기
-                    print(progress.progress())
-                    #진행 후 저장
-                    progress_manager.save(id)
-                await asyncio.sleep(1) 
-        except Exception as e:
-            print(f"오류 발생 : {e}")
 
 
 
