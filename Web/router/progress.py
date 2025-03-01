@@ -3,6 +3,8 @@ from fastapi.templating import Jinja2Templates
 import httpx
 from common_data import PROGRESS_SERVER, get_progress_list, get_profile_list
 from schema.schema import ProgressCreateRequestData
+import re
+
 router = APIRouter()
 templates = Jinja2Templates(directory="templates")
 
@@ -29,7 +31,29 @@ async def progress_detail(request:Request, id:str):
     with httpx.Client() as client:
         response = client.get(url=url)
     progress = response.json()
+    ## ** **를 굵은 글씨로 바꿔서 반환
+    for log in progress.get("debate_log"):
+        log["message"] = format_to_bold(log["message"])
+        log["timestamp"] = format_datetime(log["timestamp"])
     return templates.TemplateResponse("progress/detail.html", {"request":request,"progress":progress})
+
+
+
+def format_to_bold(text:str) -> str:
+    """
+    **굵은 글씨**를 <strong>굵은글씨</strong>으로 바꿔주는 함수
+    """
+    return re.sub(r'\*\*(.*?)\*\*', r'<strong>\1</strong>', text)
+
+def format_datetime(timestamp:str)-> str:
+    """ 년-월-일T시:분:초.밀리초 -> 년-월-일 시:분:초 로 변환"""
+    if "T" in timestamp:
+        date_part, time_part = timestamp.split("T")
+        time_part = time_part.split(".")[0]
+        return f"{date_part} {time_part}"
+    return timestamp
+
+
 
 @router.get("/progress/autogenerate")
 async def progress_auto_generate(request:Request, topic:str=None):

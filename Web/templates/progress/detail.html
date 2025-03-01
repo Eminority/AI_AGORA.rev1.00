@@ -10,16 +10,32 @@
                 {{ progress.topic }}
             </h4>
         </div>
+        <div class="container row">
+            {% for position, data in progress.participants.items() %}
+            <div class="col-sm-6 border">
+                <span>
+                    <strong>{{ position }}</strong> : {{ data.name }}</span>
+                <ul>
+                    <li>AI : {{ data.ai }}</li>
+                    <li>속성 : {{ data.object_attribute }}</li>
+                </ul>
+            </div>
+            {% endfor %}
+        </div>
         <div>
             <div id="progress-log">
                 {% for message in progress.debate_log %}
-                <div class="media border p-3">
-                    <div class="media-body">
-                        <span class="speaker" data-position="{{ message.speaker }}">{{ message.speaker }}</span>
-                        <span class="timestamp">{{ message.timestamp }}</span>
-                        <div class="message">{{ message.message }}</div>
+                    <div class="media border p-3">
+                        <div class="media-body">
+                            <strong>
+                                <span class="speaker" data-position="{{ message.speaker }}">{{ message.speaker }}</span>
+                            </strong>
+                            <span class="timestamp">{{ message.timestamp }}</span>
+                            <div class="message" style="white-space: pre-line;">
+                                {{ message.message | replace("**", "<strong>") | replace("**", "</strong>") | safe }}
+                            </div>
+                        </div>
                     </div>
-                </div>
                 {% endfor %}
             </div>
         </div>

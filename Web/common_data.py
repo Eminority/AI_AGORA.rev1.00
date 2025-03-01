@@ -26,3 +26,4 @@ def get_progress_list() -> dict:
     with httpx.Client() as client:
         response = client.get(url=url)
     return response.json()
+
