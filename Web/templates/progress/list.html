@@ -14,18 +14,21 @@
             </a>
         </div>
     </div>
-    
-    <div class="">
-        <div class="progresses_container container-sm">
+   
+    <div class="progresses_container container-sm">
+        <div id="progress_list" class="">
             {% for id, data in progress.items() %}
-                <div class="row">
-                    <div class="progress_detail col-sm-12" data-progress-id="{{ id }}">
-                        <div class="media border p-3">
-                            <div class="media-body">
-                                <h4 class="text-center">주제 : {{ data.topic }}</h4>
-                                <h5 class="text-center">참가 AI 목록</h5>
+                <div class="card">
+                    <div class="card-header" >
+                        <a class="card-link" data-toggle="collapse" href="#id_{{ id }}">
+                            {{ data.topic }}
+                        </a>
+                    </div>
+                    <div id="id_{{ id }}" class="collapse" data-parent="#progress_list">
+                        <div class="card-body">
+                            <div class="row">
                                 {% for participant in data.participants %}
-                                    <div>
+                                    <div class="col-sm-6">
                                         <h5>{{ participant.position }}</h5>
                                         <ul>
                                             <li>{{ participant.name }}</li>
@@ -34,6 +37,13 @@
                                         </ul>
                                     </div>
                                 {% endfor %}
+                            </div>
+                            <div class="row">
+                                <div class="col-sm-2"></div>
+                                <div class="col-sm-8">
+                                    <button class="progress_detail btn btn-primary btn-block" data-progress-id="{{ id }}">보러가기</button>
+                                </div>
+                                <div class="col-sm-2"></div>
                             </div>
                         </div>
                     </div>

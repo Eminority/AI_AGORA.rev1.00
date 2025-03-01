@@ -24,6 +24,7 @@ class ProgressManager:
         self.vectorstore_handler = vectorstore_handler
         self.progress_pool:Dict[str, Progress] = {}
         self.generate_text_config = generate_text_config
+        self.auto_progress_create_task = None
         self.load_data_from_db()
 
 
@@ -171,27 +172,30 @@ class ProgressManager:
             return progress
         
 
-    async def auto_progress_create(self, profile_manager:ProfileManager):
-        topic = self.auto_topic_create()
+    async def auto_progress_create(self, profile_manager:ProfileManager, topic:str=None):
+        if not topic:
+            topic = self.auto_topic_create()
         profiles = list(profile_manager.objectlist.keys())
-        print(f"{len(profiles)} 개 프로필 로드됨")
         front = 0
-        while front < len(profiles) -1:
-            pos = {"id":profiles[front]}
-            back = front + 1
-            while back < len(profiles):
-                neg = {"id":profiles[back]}
-                print(f"{front}, {back}")
-                try:
-                    participants = {"pos":pos, "neg":neg}
-                    await asyncio.to_thread(self.create_progress, "debate_2", participants, topic)
-                    participants2 = {"pos":neg, "neg":pos}
-                    await asyncio.to_thread(self.create_progress, "debate_2", participants2, topic)
-                except Exception as e:
-                    print(f"Progress 생성 중 오류 {e} 발생")
-                back += 1
-            front += 1
-            await asyncio.sleep(1)
+        try:
+            while front < len(profiles) -1:
+                pos = {"id":profiles[front]}
+                back = front + 1
+                while back < len(profiles):
+                    neg = {"id":profiles[back]}
+                    print(f"{front}, {back}")
+                    try:
+                        participants = {"pos":pos, "neg":neg}
+                        await asyncio.to_thread(self.create_progress, "debate_2", participants, topic)
+                        participants2 = {"pos":neg, "neg":pos}
+                        await asyncio.to_thread(self.create_progress, "debate_2", participants2, topic)
+                    except Exception as e:
+                        print(f"auto_progress_create 중 오류 {e} 발생")
+                    back += 1
+                front += 1
+                await asyncio.sleep(1)
+        except Exception as e:
+            print(f"auto_progress_create 중 오류 발생 : {e}")
             
         
         

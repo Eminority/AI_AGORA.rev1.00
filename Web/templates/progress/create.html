@@ -7,39 +7,20 @@
 {% block content %}
     <div class="">
         <div class="container-sm">
-            <form action="{{ request.url_for('progress_create_request') }}" id="progressForm" method="post">
+            <form id="progressForm" method="post">
+                
                 <div class="row">
-                    <div class="col-sm-4"> <!-- 빈칸 --> </div>
-                    <div class="col-sm-4">
-                        <label for="progress_type">세션 형태</label>
-                        <select id="progress_type" name="type">
-                            <option value="debate">기본 토론</option>
-                            <option value="debate_2">토론 - 판사 3</option>
+                    <div class="col-sm-2"> <!-- 빈칸 --> </div>
+                    <div class="col-sm-8">
+                        <label for="generate_type">대화 생성 방식</label>
+                        <select id="generate_type" name="type" class="custom-select">
+                            <option value="auto" selected>참가자 전체 입력</option>
+                            <option value="select-participant">참가자 선택</option>
                         </select>
                     </div>
-                    <div class="col-sm-4"> <!-- 빈칸 --> </div>
+                    <div class="col-sm-2"> <!-- 빈칸 --> </div>
                 </div>
-                <div class="row">
-                    <div class="col-sm-2"><!-- 빈칸 --></div>
-                    <div class="col-sm-4">
-                        <label for="pos_id">찬성 측 AI:</label>
-                        <select id="pos_id" name="pos_id">  
-                            {% for id, data in profiles.items() %}
-                                <option value="{{ data._id }}"> {{ data.name }} - {{ data.ai }} </option>
-                            {% endfor %}
-                        </select>
-                        
-                    </div>
-                    <div class="col-sm-4">
-                        <label for="neg_id">반대 측 AI:</label>
-                        <select id="neg_id" name="neg_id">  
-                            {% for id, data in profiles.items() %}
-                                <option value="{{ data._id }}"> {{ data.name }} - {{ data.ai }} </option>
-                            {% endfor %}
-                        </select>
-                    </div>
-                    <div class="col-sm-2"><!-- 빈칸 --></div>
-                </div>
+                
                 <div class="row">
                     <div class="col-sm-2"></div>
                     <div class="form-group col-sm-8">
@@ -48,8 +29,60 @@
                     </div>
                     <div class="col-sm-2"></div>
                 </div>
-                <button type="submit">시작하기</button>
+
+                <div class="select-others">
+                    <div class="row">
+                        <div class="col-sm-2"> <!-- 빈칸 --> </div>
+                        <div class="col-sm-8">
+                            <label for="progress_type">세션 형태</label>
+                            <select id="progress_type" class="custom-select" name="type">
+                                <option value="debate">기본 토론</option>
+                                <option value="debate_2">토론 - 판사 3</option>
+                            </select>
+                        </div>
+                        <div class="col-sm-2"> <!-- 빈칸 --> </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-sm-2"><!-- 빈칸 --></div>
+                        <div class="col-sm-4">
+                            <label for="pos_id">찬성 측 AI:</label>
+                            <select id="pos_id" name="pos_id" class="custom-select">  
+                                {% for id, data in profiles.items() %}
+                                    <option value="{{ data._id }}"> {{ data.name }} - {{ data.ai }} </option>
+                                {% endfor %}
+                            </select>
+                            
+                        </div>
+                        <div class="col-sm-4">
+                            <label for="neg_id">반대 측 AI:</label>
+                            <select id="neg_id" name="neg_id" class="custom-select">  
+                                {% for id, data in profiles.items() %}
+                                    <option value="{{ data._id }}"> {{ data.name }} - {{ data.ai }} </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-sm-2"><!-- 빈칸 --></div>
+                    </div>
+                </div>
+               
+                <div class="row">
+                    <div class="col-sm-3"><!-- 빈칸 --></div>
+                    <div class="col-sm-6">
+                        <button class="btn btn-primary btn-block" type="submit">시작하기</button>
+                    </div>
+                    <div class="col-sm-3"><!-- 빈칸 --></div>
+                </div>
             </form>
+            <hr/>
+            <div class="row">
+                <div class="col-sm-3"><!-- 빈칸 --></div>
+                <div class="col-sm-6">
+                    <button class="btn btn-primary btn-block" type="button"
+                        onclick='location.href="/progress"'>목록으로 돌아가기</button>
+                </div>
+                <div class="col-sm-3"><!-- 빈칸 --></div>
+            </div>
         </div>
     </div>
 
@@ -58,43 +91,82 @@
 
 
     <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            const generateType = document.getElementById("generate_type");
+            const selectOthers = document.querySelector(".select-others");
+
+            function toggleSelectOthers() {
+                if (generateType.value === "auto") {
+                    selectOthers.style.display = "none";
+                } else if (generateType.value === "select-participant"){
+                    selectOthers.style.display = "block";
+                }
+            }
+
+            // 초기 상태 설정
+            toggleSelectOthers();
+
+            // select 값이 변경될 때 이벤트 추가
+            generateType.addEventListener("change", toggleSelectOthers);
+        });
+
+
+
         document.getElementById("progressForm").addEventListener("submit", async function(event) {
             event.preventDefault(); // 기본 제출 동작 방지
             
-            const progressType = document.getElementById("progress_type").value
-            const pos_id = document.getElementById("pos_id").value
-            const neg_id = document.getElementById("neg_id").value
-            const topic = document.getElementById("topic").value
-            if (pos_id === neg_id) {
-                alert("같은 AI를 중복으로 선택할 수 없습니다.");
-                return;
-            }
-
-            
-            const actionUrl = event.target.action; // form의 action URL 가져오기
-            const requestData = {
-                "type":progressType,
-                "topic":topic,
-                "participants":{
-                    "pos":{"id":pos_id},
-                    "neg":{"id":neg_id}
-                }
-            }
-            try {
+            const generate_type = document.getElementById("generate_type").value;
+            const topic = document.getElementById("topic").value;
+            if (generate_type === "auto"){
+                /// 자동 참가자 입력의 경우
+                const actionUrl = `{{ request.url_for('progress_auto_generate') }}?topic=${topic}`;
+                try {
                 // ✅ 10초 타임아웃을 적용하여 fetch 실행
-                const result = await fetch(actionUrl, {
-                    method: "POST",
-                    headers:{"Content-Type":"application/json"},
-                    body:JSON.stringify(requestData)
-                    // FormData를 그대로 전송
-            }); // 100초 타임아웃 적용
-
-                if (result.message){
-                    alert(result.message);
+                    const result = await fetch(actionUrl, {
+                        method: "get"
+                    }); // 100초 타임아웃 적용
+                    const data = await result.json();
+                    alert(data.message)
+                }  catch (error) {
+                    console.error("에러 발생:", error);
+                    alert("토론 생성 중 오류가 발생했습니다.");
                 }
-            } catch (error) {
-                console.error("에러 발생:", error);
-                alert("토론 생성 중 오류가 발생했습니다.");
+            } else if (generate_type === "select-participant"){
+                ///수동 참가자 선택의 경우
+                const actionUrl = "{{ request.url_for('progress_create_request') }}";
+                const progressType = document.getElementById("progress_type").value
+                const pos_id = document.getElementById("pos_id").value
+                const neg_id = document.getElementById("neg_id").value
+                
+                if (pos_id === neg_id) {
+                    alert("같은 AI를 중복으로 선택할 수 없습니다.");
+                    return;
+                }
+                const requestData = {
+                    "type":progressType,
+                    "topic":topic,
+                    "participants":{
+                        "pos":{"id":pos_id},
+                        "neg":{"id":neg_id}
+                    }
+                }
+                try {
+                    // ✅ 10초 타임아웃을 적용하여 fetch 실행
+                    const result = await fetch(actionUrl, {
+                        method: "POST",
+                        action: "{{ request.url_for('progress_create_request') }}",
+                        headers:{"Content-Type":"application/json"},
+                        body:JSON.stringify(requestData)
+                        // FormData를 그대로 전송
+                    }); // 100초 타임아웃 적용
+                    const data = await result.json();
+                    if (data.result){
+                        alert("입력하신 주제로 생성되는 중입니다.");
+                    }
+                } catch (error) {
+                    console.error("에러 발생:", error);
+                    alert("토론 생성 중 오류가 발생했습니다.");
+                }
             }
         });
     </script>

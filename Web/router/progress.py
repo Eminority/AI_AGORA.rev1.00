@@ -31,6 +31,15 @@ async def progress_detail(request:Request, id:str):
     progress = response.json()
     return templates.TemplateResponse("progress/detail.html", {"request":request,"progress":progress})
 
+@router.get("/progress/autogenerate")
+async def progress_auto_generate(request:Request, topic:str=None):
+    url = f"{PROGRESS_SERVER}/progress/autogenerate"
+    if topic:
+        url += f"?topic={topic}"
+    with httpx.Client() as client:
+        response = client.get(url=url)
+    return response.json()
+
 @router.get("/progress/create")
 async def progress_create_page(request:Request):
     profiles = get_profile_list()

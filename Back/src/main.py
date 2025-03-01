@@ -92,7 +92,8 @@ progress_manager = ProgressManager(participant_factory=participant_factory,
 
 
 # progress 자동진행 메서드
-auto_progress_create_task = None
+# /progress/autogenerate 엔드포인트로 접근해서 신청 넣는걸로 변경
+# auto_progress_create_task = None
 async def auto_progressing():
     global auto_progress_create_task
     while (True):
@@ -110,9 +111,10 @@ async def auto_progressing():
                         print(f"====\nprogress step : {result.get('step')}\n{result['speaker']} 가 말했음")
                         progress_manager.save(id)
                 await asyncio.sleep(1)
-            if count == 0 and (auto_progress_create_task is None or auto_progress_create_task.done()):
-                print("자동 주제 생성 시작")
-                auto_progress_create_task = asyncio.create_task(progress_manager.auto_progress_create(profile_manager))
+            # if count == 0 and (auto_progress_create_task is None or auto_progress_create_task.done()):
+            #     print("자동 주제 생성 시작")
+            #     auto_progress_create_task = asyncio.create_task(progress_manager.auto_progress_create(profile_manager))
+            #     /progress/autogenerate 엔드포인트로 접근해서 신청 넣는걸로 변경
         except Exception as e:
             print(f"오류 발생 : {e}")
         await asyncio.sleep(5)
@@ -188,7 +190,8 @@ async def get_progress_list():
                               "name": obj.name,
                               "id":obj.id,
                               "img":obj.img,
-                              "ai":obj.ai_instance.model_name}
+                              "ai":obj.ai_instance.model_name,
+                              "object_attribute":obj.object_attribute}
                             for position, obj in progress.participant.items()]
         }
     return progresslist
@@ -215,6 +218,20 @@ async def create_progress(progressData:ProgressCreateRequestData):
     return progress_manager.create_progress(progressType, participants, topic)
 
 
+# 자동 progress 생성 체크
+@app.get("/progress/autogenerate")
+async def progres_auto_generate(topic:str = None):
+    # Progress 자동생성중이 아닌 경우
+    if progress_manager.auto_progress_create_task is None or progress_manager.auto_progress_create_task.done():
+        try:
+            progress_manager.auto_progress_create_task = asyncio.create_task(progress_manager.auto_progress_create(profile_manager, topic))
+            return {"result":True, "message":"자동 대화 생성 요청에 성공했습니다."}
+        except Exception as e:
+            print(f"자동 Progress 생성 중 오류 발생 : {e}")
+            return {"result":False, "message":e}
+    # Progress 자동생성중인경우 -> 자동생성중이니 막기
+    else:
+        return {"result":False, "message":"이미 다른 주제로 자동 대화 생성중입니다."}
 
 
 ##이미 생성되어있는 사물 프로필 목록 반환
