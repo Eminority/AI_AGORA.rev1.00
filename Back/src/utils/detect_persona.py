@@ -17,7 +17,7 @@ class DetectPersona:
 
         if GEMINI_API_KEY:
             genai.configure(api_key=GEMINI_API_KEY)
-            self.gemini_model = genai.GenerativeModel('gemini-pro')
+            self.gemini_model = genai.GenerativeModel('gemini-2.0-flash')
 
 
     def get_traits(self, object_name: str) -> str:

@@ -450,10 +450,10 @@ class Debate_2(Progress):
 
         ### Output Format:
         - **Rebuttal 1 Analysis:** (Detailed analysis of the logical strengths and weaknesses)
-        - **Rebuttal 1 Strength Score (pos):** Score
+        - **Rebuttal 1 Strength Score (pos): Score
 
         - **Rebuttal 2 Analysis:** (Detailed analysis of the logical strengths and weaknesses)
-        - **Rebuttal 2 Strength Score (neg):** Score
+        - **Rebuttal 2 Strength Score (neg): Score
 
         """ 
 
