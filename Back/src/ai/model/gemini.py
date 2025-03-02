@@ -31,9 +31,8 @@ class GeminiAPI(AI_Instance):
         :param max_tokens: 생성할 최대 토큰 수
         :return: 생성된 텍스트
         """
-        full_prompt = user_prompt
-        if self.personality:
-            full_prompt = f"personality:{self.personality}\n{user_prompt}"
+        full_prompt = f"personality:{self.personality}\n{user_prompt}" if self.personality else user_prompt
+
         try:
             response = self.model.generate_content(
                 full_prompt,

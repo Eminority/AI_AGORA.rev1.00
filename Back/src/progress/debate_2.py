@@ -19,7 +19,7 @@ class Debate_2(Progress):
                          data=data)
 
         # 총 11단계 진행
-        self.max_step = 11
+        self.max_step = 12
 
         self.data = data
         if self.data == None:
@@ -293,7 +293,7 @@ class Debate_2(Progress):
             **Debate Topic:** {self.data['topic']}  
             **Previous Statements:** {self.data['debate_log'][:-2]}  
             """
-
+    
             result["message"] = self.generate_text(result["speaker"],prompt)
 
         elif step == 9:
@@ -346,15 +346,20 @@ class Debate_2(Progress):
         elif step == 11:
             # 11. 판사가 최종 결론
             result["speaker"] = "judge_1"
-            result["message"] = self.evaluate()
-            debate["status"]["type"] = "end"
+            result["message"] = self.evaluate()['result']
+
         
+        elif step == 12:
+            result["speaker"] = "summerizer"
+            result["message"] = self.summerizer()['result']
+            debate["status"]["type"] = "end"
+
         else:
             result["speaker"] = "SYSTEM"
             result["message"] = "The debate has already concluded."
         
         debate["debate_log"].append(result)
-
+            # print(self.summerizer())
         # if result["speaker"] == "pos":
         #     debate["debate_log_pos"].append(result["message"])
 
@@ -371,20 +376,14 @@ class Debate_2(Progress):
 
 
 
-    def evaluate(self) -> str:
+    def evaluate(self) -> dict:
         # 찬성, 반대측 각각 토론 로그
-        pos_log = [pos_message for pos_message in self.data["debate_log"] if pos_message["speaker"] == "pos"]
-        neg_log = [pos_message for pos_message in self.data["debate_log"] if pos_message["speaker"] == "neg"]
+        pos_log = next((pos_message for pos_message in self.data["debate_log"] if pos_message["speaker"] == "pos"))
+        neg_log = next((pos_message for pos_message in self.data["debate_log"] if pos_message["speaker"] == "neg"))
         # 찬성, 반대측 반박 로그 (step 5,6)
-        pos_rebuttal = [pos_message for pos_message in self.data["debate_log"] if pos_message["step"] == 6]
-        neg_rebuttal = [neg_message for neg_message in self.data["debate_log"] if neg_message["step"] == 5]
+        pos_rebuttal = next((pos_message for pos_message in self.data["debate_log"] if pos_message["step"] == 6))
+        neg_rebuttal = next((neg_message for neg_message in self.data["debate_log"] if neg_message["step"] == 5))
 
-
-
-        print("===========================")
-        print("pos_rebuttal: ",pos_rebuttal)
-        print("neg_rebuttal: ",neg_rebuttal)
-        print("===========================")
         
         # Generate the evaluation text from the judge
         prompt_logicality = f"""
@@ -492,43 +491,39 @@ class Debate_2(Progress):
         - **Passage 2 Analysis:** (Detailed analysis of persuasiveness, including strengths and weaknesses)
         - **Passage 2 Persuasiveness Score (neg): Score
         """
+   
 
+        def extract_score(pattern, text):
+            """정규식을 사용하여 점수를 추출하고 정수로 변환하는 함수"""
+            match = re.search(pattern, text)
+            return int(match.group(1)) if match else 0  # 매칭이 안 되면 기본값 0 반환
 
+        def calculate_score(judge, prompt):
+            """텍스트 생성 후 점수를 추출하는 함수"""
+            result_text = self.generate_text(judge, prompt)
+            return extract_score(r'\(pos\)\:.*?(\d+)(?:\*|\/100)?', result_text), \
+                extract_score(r'\(neg\)\:.*?(\d+)(?:\*|\/100)?', result_text)
 
+        # 각 평가 기준에 대한 점수 추출
+        logicality_pos, logicality_neg = calculate_score("judge_1", prompt_logicality)
+        rebuttal_pos, rebuttal_neg = calculate_score("judge_2", prompt_rebuttal)
+        persuasion_pos, persuasion_neg = calculate_score("judge_3", prompt_persuasion)
 
+        # 최종 점수 계산
+        weights = {"logicality": 0.4, "rebuttal": 0.35, "persuasion": 0.25}
 
+        match_pos = (logicality_pos * weights["logicality"] + 
+                    rebuttal_pos * weights["rebuttal"] + 
+                    persuasion_pos * weights["persuasion"])
 
-        
-        
-        result_text_logicality = self.generate_text("judge_1",prompt_logicality)
-        print(result_text_logicality)
-        match_logicality_pos = re.search(r'\(pos\)\:.*?(\d+)(?:\*|\/100)?', result_text_logicality)
-        match_logicality_neg = re.search(r'\(neg\)\:.*?(\d+)(?:\*|\/100)?', result_text_logicality)
-        
-        result_text_rebuttal = self.generate_text("judge_2",prompt_rebuttal)
-        print(result_text_rebuttal)
-        match_rebuttal_pos = re.search(r'\(pos\)\:.*?(\d+)(?:\*|\/100)?', result_text_rebuttal)
-        match_rebuttal_neg = re.search(r'\(neg\)\:.*?(\d+)(?:\*|\/100)?', result_text_rebuttal)
-        
-        result_text_persuasion = self.generate_text("judge_3",prompt_persuasion)
-        print(result_text_persuasion)
-        match_persuasion_pos = re.search(r'\(pos\)\:.*?(\d+)(?:\*|\/100)?', result_text_persuasion)
-        match_persuasion_neg = re.search(r'\(neg\)\:.*?(\d+)(?:\*|\/100)?', result_text_persuasion)
-        
+        match_neg = (logicality_neg * weights["logicality"] + 
+                    rebuttal_neg * weights["rebuttal"] + 
+                    persuasion_neg * weights["persuasion"])
 
-        match_logicality_pos = int(match_logicality_pos.group(1))
-        match_logicality_neg = int(match_logicality_neg.group(1))
-        match_rebuttal_pos = int(match_rebuttal_pos.group(1))
-        match_rebuttal_neg = int(match_rebuttal_neg.group(1))
-        match_persuasion_pos = int(match_persuasion_pos.group(1))
-        match_persuasion_neg = int(match_persuasion_neg.group(1))
-        
-        match_pos = match_logicality_pos*0.4 + match_rebuttal_pos*0.35 + match_persuasion_pos*0.25
-        match_neg = match_logicality_neg*0.4 + match_rebuttal_neg*0.35 + match_persuasion_neg*0.25
+        # 결과 출력
+        print(f"match_pos: {match_pos}")
+        print(f"match_neg: {match_neg}")
 
-
-        print("match_pos:", match_pos)
-        print("match_neg:", match_neg)
         if match_pos:
             if match_pos > match_neg:
                 self.data["result"] = "positive"
@@ -538,5 +533,36 @@ class Debate_2(Progress):
                 self.data["result"] = "draw"
         else:
             self.data["result"] = "draw"
-            
-        return self.data["result"]
+        
+
+
+
+        return {
+            "result": self.data["result"],
+            "logicality_pos": logicality_pos,
+            "logicality_neg": logicality_neg,
+            "rebuttal_pos": rebuttal_pos,
+            "rebuttal_neg": rebuttal_neg,
+            "persuasion_pos": persuasion_pos,
+            "persuasion_neg": persuasion_neg,
+            "match_pos": match_pos,
+            "match_neg": match_neg
+            }
+    
+    def summerizer(self):
+        prompt_summary=f"""
+        다음은 토론에 대한 전체 기록입니다. 이를 아래 형식으로 한글로 요약해 주세요.
+
+        "주제": [토론의 주요 주제를 간결하게 정리]  
+        "찬성 측 주장": [찬성 측의 핵심 주장 요약]  
+        "반대 측 주장": [반대 측의 핵심 주장 요약]  
+        "찬성 측 변론": [찬성 측이 반론에 대응한 내용]  
+        "반대 측 변론": [반대 측이 반론에 대응한 내용]  
+        "최종 판결": [토론의 결론 또는 심사 결과 요약]  
+
+        아래는 토론 기록입니다:
+        {self.data['debate_log']}
+        """
+        return self.generate_text("summerizer", prompt_summary)
+
+        
