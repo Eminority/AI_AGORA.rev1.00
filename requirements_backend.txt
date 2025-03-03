@@ -21,3 +21,5 @@ google
 googlesearch-python
 webserver
 duckduckgo-search
+crewai_tools
+google.generativeai

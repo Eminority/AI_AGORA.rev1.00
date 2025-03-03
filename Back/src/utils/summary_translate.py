@@ -17,11 +17,11 @@ class SummaryTranslate:
     def pull_model(model_name="exaone3.5"):
         "Ollama 모델 다운로드 "
         try:
-            print(f"📥 '{model_name}' 모델 다운로드 중...")
+            print(f"'{model_name}' 모델 다운로드 중...")
             subprocess.run(["ollama", "pull", model_name], check=True)
-            print(f"✅ '{model_name}' 모델 다운로드 완료!")
+            print(f"'{model_name}' 모델 다운로드 완료!")
         except subprocess.CalledProcessError:
-            print(f"❌ '{model_name}' 모델 다운로드 실패!")
+            print(f"'{model_name}' 모델 다운로드 실패!")
 
     def set_model(self, model_name):
         """
@@ -68,7 +68,7 @@ class SummaryTranslate:
 
             return translated_data
         except Exception as e:
-            print(f"❌ JSON 번역 오류: {e}")
+            print(f"JSON 번역 오류: {e}")
             return None
 
 # ✅ 실행 예제
