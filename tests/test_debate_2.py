@@ -97,9 +97,9 @@ if __name__ == "__main__":
                 }
     
     
-    judge_1 = {"ai": "deepseek-r1-distill-qwen-32b"}
-    judge_2 = {"ai": "deepseek-r1-distill-qwen-32b"}
-    judge_3 = {"ai": "deepseek-r1-distill-qwen-32b"}
+    judge_1 = {"ai": "GEMINI"}
+    judge_2 = {"ai": "GEMINI"}
+    judge_3 = {"ai": "GEMINI"}
 
 
     participants = {"pos" : user, "neg" : opponent, "judge_1" : judge_1, "judge_2" : judge_2, "judge_3" : judge_3}

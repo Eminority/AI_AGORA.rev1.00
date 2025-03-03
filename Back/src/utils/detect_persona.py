@@ -29,7 +29,7 @@ class DetectPersona:
         # 🔍 정보 검색 단계
         docs = self.retriever.invoke(object_name)
         if not docs:
-            return "❌ 해당 객체에 대한 정보를 찾을 수 없습니다."
+            return "❌ 해당 객체에 대한m 정보를 찾을 수 없습니다."
         context = docs[0].page_content
         
         # 🔍 성격 분석 (Local LLM 또는 GEMINI)
