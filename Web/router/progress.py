@@ -1,7 +1,8 @@
 from fastapi import APIRouter, Request, UploadFile, File, Form
 from fastapi.templating import Jinja2Templates
 import httpx
-from common_data import PROGRESS_SERVER, get_progress_list, get_profile_list
+from utils.get_data import getData
+from common_data import PROGRESS_SERVER, get_profile_list
 from schema.schema import ProgressCreateRequestData
 import re
 
@@ -22,36 +23,19 @@ post /progress/create
 
 @router.get("/progress")
 async def progress_page(request:Request):
-    progress_list = get_progress_list()
+    progress_list = getData.get_progress_list()
     return templates.TemplateResponse("/progress/list.html", {"request":request, "progress":progress_list})
 
 @router.get("/progress/detail")
 async def progress_detail(request:Request, id:str):
-    url = f"{PROGRESS_SERVER}/progress/detail?id={id}"
-    with httpx.Client() as client:
-        response = client.get(url=url)
-    progress = response.json()
-    ## ** **를 굵은 글씨로 바꿔서 반환
-    for log in progress.get("debate_log"):
-        log["message"] = format_to_bold(log["message"])
-        log["timestamp"] = format_datetime(log["timestamp"])
+    progress = getData.get_progress_detail(id)
     return templates.TemplateResponse("progress/detail.html", {"request":request,"progress":progress})
 
+@router.get("/progress/data")
+async def progress_data(request:Request, id:str):
+    progress = getData.get_progress_detail(id)
+    return progress
 
-
-def format_to_bold(text:str) -> str:
-    """
-    **굵은 글씨**를 <strong>굵은글씨</strong>으로 바꿔주는 함수
-    """
-    return re.sub(r'\*\*(.*?)\*\*', r'<strong>\1</strong>', text)
-
-def format_datetime(timestamp:str)-> str:
-    """ 년-월-일T시:분:초.밀리초 -> 년-월-일 시:분:초 로 변환"""
-    if "T" in timestamp:
-        date_part, time_part = timestamp.split("T")
-        time_part = time_part.split(".")[0]
-        return f"{date_part} {time_part}"
-    return timestamp
 
 
 

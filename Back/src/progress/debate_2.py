@@ -92,10 +92,10 @@ class Debate_2(Progress):
                 You are facilitating a debate on the topic: **"{self.data['topic']}"**. Your role is to introduce the discussion in a neutral manner, providing a brief, informative introduction to the topic without taking any stance.  
 
                 ### **Instructions:**
+                - You should say in **Korean**
                 - Start by giving a **concise, objective summary** of the topic.
                 - Avoid personal opinions or taking a side.
                 - After introducing the topic, **invite the affirmative side to present their argument first**.
-
                 ---
 
                 ### **Example Structure**:
@@ -116,6 +116,7 @@ class Debate_2(Progress):
             You are participating in a debate on the topic: **"{self.data['topic']}"**. Your role is to argue in favor of this statement.  
 
             ### **Instructions:**  
+            - You should say in **Korean**
             - Clearly state your **position** in support of the topic.  
             - Provide **at least three strong arguments** supporting your stance.  
             - Use **logical reasoning, real-world examples, and data** to reinforce your claims.  
@@ -140,7 +141,7 @@ class Debate_2(Progress):
             Be concise yet persuasive. Provide factual support where applicable.
             """
 
-            prompt += f"Highlight the unique characteristics in your argument. Think from {self.participant[result['speaker']].name}'s perspective."
+            prompt += f"SYSTEM : Highlight the unique characteristics in your argument. Think from {self.participant[result['speaker']].name}'s perspective.\n"
             result["message"] = self.generate_text(result["speaker"], prompt)
 
         elif step == 3:
@@ -150,6 +151,7 @@ class Debate_2(Progress):
             You are participating in a debate on the topic: **"{self.data['topic']}"**. Your role is to argue against this statement.  
 
             ### **Instructions:**  
+            - You should say in **Korean**
             - Clearly state your **position** in opposition to the topic.  
             - Provide **at least three strong arguments** against the proposition.  
             - Use **logical reasoning, real-world examples, and data** to reinforce your claims.  
@@ -173,7 +175,7 @@ class Debate_2(Progress):
 
             Be concise yet persuasive. Provide factual support where applicable.
             """
-            prompt += f"Highlight the unique characteristics in your argument. Think from {self.participant[result['speaker']].name}'s perspective."
+            prompt += f"SYSTEM : Highlight the unique characteristics in your argument. Think from {self.participant[result['speaker']].name}'s perspective.\n"
             
             result["message"] = self.generate_text(result["speaker"], prompt)
 
@@ -190,6 +192,7 @@ class Debate_2(Progress):
             You are participating in a debate on the topic: **"{self.data['topic']}"**. Your role is to **counter** the arguments made by the opposing (affirmative) side.  
 
             ### **Instructions:**  
+            - You should say in **Korean**
             - Review the **most recent supporting argument** and formulate a **logical rebuttal**.  
             - Directly address each **key point** from the affirmative side.  
             - Use **evidence, logical reasoning, and real-world examples** to dismantle their claims.  
@@ -222,7 +225,7 @@ class Debate_2(Progress):
             **Previous Statements:** {self.data['debate_log'][-3]}  
             """
 
-            prompt += f"Highlight the unique characteristics in your argument. Think from {self.participant[result['speaker']].name}'s perspective."
+            prompt += f"SYSTEM : Highlight the unique characteristics in your argument. Think from {self.participant[result['speaker']].name}'s perspective.\n"
             
             result["message"] = self.generate_text(result["speaker"],prompt)
         elif step == 6:
@@ -232,6 +235,7 @@ class Debate_2(Progress):
             You are participating in a debate on the topic: **"{self.data['topic']}"**. Your role is to **counter** the arguments made by the opposing (negative) side.  
 
             ### **Instructions:**  
+            - You should say in **Korean**
             - Review the **most recent opposing argument** and formulate a **logical rebuttal**.  
             - Directly address each **key point** from the negative side.  
             - Use **evidence, logical reasoning, and real-world examples** to dismantle their claims.  
@@ -265,7 +269,7 @@ class Debate_2(Progress):
             """
             
 
-            prompt += f"Highlight the unique characteristics in your argument. Think from {self.participant[result['speaker']].name}'s perspective."
+            prompt += f"SYSTEM : Highlight the unique characteristics in your argument. Think from {self.participant[result['speaker']].name}'s perspective.\n"
             
             result["message"] = self.generate_text(result["speaker"],prompt)
 
@@ -282,6 +286,7 @@ class Debate_2(Progress):
             You are participating in a debate on the topic: **"{self.data['topic']}"**. Your role is to **deliver the final statement in support of the affirmative position**.
 
             ### **Instructions:**  
+            - You should say in **Korean**
             - Summarize the **strongest and most compelling arguments** made in favor of this position.  
             - Reinforce why the **affirmative stance remains the most logical and justified**.  
             - Address any counterarguments and explain why they do not weaken your position.  
@@ -322,6 +327,7 @@ class Debate_2(Progress):
             You are participating in a debate on the topic: **"{self.data['topic']}"**. Your role is to **deliver the final statement in support of the negative position**.
 
             ### **Instructions:**  
+            - You should say in **Korean**
             - Summarize the **strongest counterarguments** presented against the topic.  
             - Emphasize why the **opposing stance remains more rational and justified**.  
             - Address the affirmative side’s claims and explain why they are insufficient.  
@@ -353,7 +359,7 @@ class Debate_2(Progress):
             **Previous Statements:** {self.data['debate_log'][:-2]}  
             """
 
-            prompt += f"Highlight the unique characteristics in your argument. Think from {self.participant[result['speaker']].name}'s perspective."
+            prompt += f"SYSTEM : Highlight the unique characteristics in your argument. Think from {self.participant[result['speaker']].name}'s perspective.\n"
             
             
             result["message"] = self.generate_text(result["speaker"],prompt)
@@ -374,15 +380,13 @@ class Debate_2(Progress):
         else:
             result["speaker"] = "SYSTEM"
             result["message"] = "The debate has already concluded."
-        
+
+
+        result["timestamp"] = datetime.now()
         debate["debate_log"].append(result)
 
         # if result["speaker"] == "pos":
         #     debate["debate_log_pos"].append(result["message"])
-
-
-
-        result["timestamp"] = datetime.now()
 
         if step < self.max_step:
             debate["status"]["step"] += 1
@@ -417,6 +421,7 @@ class Debate_2(Progress):
         - Does it provide well-supported claims with minimal weaknesses in reasoning?
 
         ### Task Instructions:
+        - You should say in **Korean**
         1. Analyze each passage and highlight specific points where the argument is logically strong.
         2. Identify any logical fallacies or weaknesses, if present.
         3. Summarize your evaluation with a clear, concise explanation.
@@ -453,6 +458,7 @@ class Debate_2(Progress):
         - Is the rebuttal structured in a coherent and persuasive manner?
 
         ### Task Instructions:
+        - You should say in **Korean**
         1. Analyze each passage’s **rebuttal strength**, identifying key points where the argument is particularly effective.
         2. Highlight any **logical weaknesses or fallacies** that undermine the rebuttal.
         3. Summarize the overall effectiveness of the rebuttal and how well it counters the opposing stance within the analysis.
@@ -490,6 +496,7 @@ class Debate_2(Progress):
         - **Effectiveness in Anticipating & Addressing Counterarguments**: Does the argument proactively refute potential objections and strengthen its stance?
 
         ### Task Instructions:
+        - You should say in **Korean**
         1. Analyze each passage’s **persuasive effectiveness**, identifying key elements that make the argument compelling.
         2. Highlight any **weaknesses or missed opportunities** in persuasion.
         3. Summarize how effectively the passage **convinces** its audience.

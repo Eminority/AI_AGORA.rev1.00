@@ -22,8 +22,10 @@
             </div>
             {% endfor %}
         </div>
+        <div id="status" data-status="{{ progress.status.type }}" style="display: none;">
+        </div>
         <div>
-            <div id="progress-log">
+            <div id="progress-log" data-messege-len="{{ progress.debate_log | length }}">
                 {% for message in progress.debate_log %}
                     <div class="media border p-3">
                         <div class="media-body">
@@ -32,7 +34,7 @@
                             </strong>
                             <span class="timestamp">{{ message.timestamp }}</span>
                             <div class="message" style="white-space: pre-line;">
-                                {{ message.message | replace("**", "<strong>") | replace("**", "</strong>") | safe }}
+                                {{ message.message | safe }}
                             </div>
                         </div>
                     </div>
@@ -41,4 +43,64 @@
         </div>
         <button onclick='location.href="/progress"'> 대화 목록으로</button> 
     </div>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", function(){
+           
+            //현재 주소창에서 id 파라미터 가져오기
+            function getQueryParam(param){
+                const urlParams = new URLSearchParams(window.location.search);
+                return urlParams.get(param);
+            }
+
+            const id = getQueryParam("id");
+
+            async function fetchProgress(){
+                const progressLog = document.getElementById("progress-log");
+                const dataMessageLen = parseInt(progressLog.getAttribute("data-message-len"), 0);
+                let lastMessageLenght = isNaN(dataMessageLen) ? 0 : dataMessageLen;
+                try {
+                    const response = await fetch(`/progress/data?id=${id}`);
+                    if (!response.ok){
+                        throw new Error("네트워크 상태 나쁨");
+                    }
+
+                    const data = await response.json();
+                    const newLog = data.debate_log || []; //debate_log가 없으면 빈 []를 반환
+
+                    if (newLog.length > lastMessageLenght) {
+                        //새 메시지 추가
+                        for (let i = lastMessageLenght; i<newLog.length; i++){
+                            const message = newLog[i];
+                            progressLog.append(add_progress_log(message));
+                        }
+                    }
+                    lastMessageLenght = newLog.length;
+
+                } catch (error) {
+                    console.error("Error fetching progress:", error);
+                }
+            }
+
+            function add_progress_log(data){
+                const messageElement = document.createElement("div");
+                messageElement.classList.add("media", "border", "p-3");
+                
+                messageElement.innerHTML = `
+                        <div class="media-body">
+                            <strong>
+                                <span class="speaker" data-position="${message.speaker}">${message.speaker}</span>
+                            </strong>
+                            <span class="timestamp">${message.timestamp}</span>
+                            <div class="message" style="white-space: pre-line;">
+                                ${message.message}
+                            </div>
+                        </div>
+                    `;
+                return messageElement;
+            }
+
+            setInterval(fetchProgress, 3000);
+        })
+    </script>
 {% endblock %}

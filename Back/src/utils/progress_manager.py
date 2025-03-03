@@ -2,6 +2,7 @@ from .participant_factory import ParticipantFactory
 from ..progress.debate import Debate
 from ..progress.progress import Progress
 from ..progress.debate_2 import Debate_2
+from ..progress.debate_3 import Debate_3
 from ..ai.ai_instance import AI_Instance
 from .mongodb_connection import MongoDBConnection
 from .web_scrapper import WebScrapper
@@ -35,6 +36,7 @@ class ProgressManager:
         """
         result = {"result":False, "id":None}
         progress = None
+        # 기본 토론 타입
         if progress_type == "debate":
             if self.check_topic_for_debate(topic):
                 # progress type==debate인 경우
@@ -46,6 +48,7 @@ class ProgressManager:
                 progress = Debate(participant=generated_participant, generate_text_config=self.generate_text_config["debate"])
                 #progress.vectorstore = self.ready_to_progress(topic=topic)
                 progress.vectorstore = self.ready_to_progress_with_personality(topic, participant)
+        # 판사 3명인 토론 타입
         elif progress_type == "debate_2":
             # self.chect_topic_for_debate(topic) 생략
             if not participant.get("judge_1"):
@@ -56,7 +59,18 @@ class ProgressManager:
                 participant["judge_3"] = {"ai":"GEMINI", "name":"judge_3"}
             generated_participant = self.set_participant(participants=participant)
             progress = Debate_2(participant=generated_participant, generate_text_config=self.generate_text_config["debate"])
-        
+        # 발언자 결정 에이전트 집어넣은 타입
+        elif progress_type == "debate_3":
+            if not participant.get("judge"):
+                participant["judge"] = {"ai":"GEMINI", "name":"judge"}
+            if not participant.get("progress_agent"):
+                participant["progress_agent"] = {"ai":"GEMINI", "name":"progress_agent"}
+            if not participant.get("next_speaker_agent"):
+                participant["next_speaker_agent"] = {"ai":"GEMINI", "name":"next_speaker_agent"}
+            generated_participant = self.set_participant(participants=participant)
+            progress = Debate_3(participant=generated_participant, generate_text_config=self.generate_text_config["debate"])
+
+
         if progress:
             progress.data["topic"] = topic
             id = str(self.mongoDBConnection.insert_data("progress", progress.data))
@@ -160,6 +174,10 @@ class ProgressManager:
                                   data = data)
             elif data.get("type") == "debate_2":
                 progress = Debate_2(participant = participants,
+                                  generate_text_config = self.generate_text_config["debate"],
+                                  data = data)
+            elif data.get("type") == "debate_3":
+                progress = Debate_3(participant = participants,
                                   generate_text_config = self.generate_text_config["debate"],
                                   data = data)
             else:
