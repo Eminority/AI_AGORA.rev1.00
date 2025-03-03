@@ -362,8 +362,7 @@ class Debate_2(Progress):
         elif step == 10:
             # 10. 판사가 판결 준비시간(1초) 부여
             result["speaker"] = "judge_1"
-            result["message"] = "The debate has now concluded. I will take a moment to review all arguments before making a final decision."
-            time.sleep(1)
+            result["message"] = "토론이 이제 종료되었습니다. 최종 결정을 내리기 전에 모든 주장을 검토하는 시간을 가지겠습니다."            time.sleep(1)
 
         
         elif step == 11:
@@ -374,7 +373,10 @@ class Debate_2(Progress):
         
         else:
             result["speaker"] = "SYSTEM"
-            result["message"] = "The debate has already concluded."
+            result["message"] = "토론이 이미 종료되었습니다."
+
+
+
         
         debate["debate_log"].append(result)
 
@@ -504,7 +506,7 @@ class Debate_2(Progress):
         **[글 2]**  
         {neg_log}  
 
-        ### **출력 형식:**  
+        ### **foramat:**  
 
         - **글 1 분석:** (설득력에 대한 상세 분석: 강점 및 약점)  
         - **글 1 설득력 점수 (pos): 점수**  
