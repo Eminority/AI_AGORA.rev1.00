@@ -22,8 +22,6 @@ home
     ->progress/{id} : 대화 세션 상세정보
 """
 
-
-
 app = FastAPI()
 
 # staticFiles 관리하기
@@ -69,5 +67,5 @@ app.include_router(profile.router)
 app.include_router(progress.router)
 
 # 실행 코드
-# python -m uvicorn webserver:app --host 0.0.0.0 --port 8001 --reload
+# python -m uvicorn main:app --host 0.0.0.0 --port 8001 --reload
 # .env 안에 DEBATE_SERVER="http://127.0.0.1:8000" 넣기기
