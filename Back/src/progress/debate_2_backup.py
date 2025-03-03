@@ -25,7 +25,6 @@ class Debate_2(Progress):
         if self.data == None:
             # debate 필드 초기화
             self.data = {
-                "type": "debate_2",
                 "participants": None,
                 "topic": None,
                 "status": {
@@ -61,14 +60,7 @@ class Debate_2(Progress):
         11) 판사 최종 결론 (evaluate)
         """
         debate = self.data
-
-
-        # 단계(step)가 설정되어 있지 않다면 1로 초기화
-        if "step" not in debate["status"] or debate["status"]["step"] == 0:
-            debate["status"]["step"] = 1
-        step = debate["status"]["step"]
-
-        result = {"timestamp": None, "speaker": "", "message": "", "step": step}
+        result = {"timestamp": None, "speaker": "", "message": "", "step": debate["status"]["step"]}
 
         # 유효하지 않은 토론이면 메시지 반환
         if debate["_id"] is None:
@@ -77,6 +69,10 @@ class Debate_2(Progress):
             result["timestamp"] = datetime.now()
             return result
 
+        # 단계(step)가 설정되어 있지 않다면 1로 초기화
+        if "step" not in debate["status"]:
+            debate["status"]["step"] = 1
+        step = debate["status"]["step"]
 
         # 단계별 로직
         if step == 1:
@@ -107,7 +103,7 @@ class Debate_2(Progress):
         elif step == 2:
             # 2. 찬성 측 주장
             result["speaker"] = "pos"
-            prompt =f"""
+            prompt = f"""
             당신은 **"{self.data['topic']}"** 주제에 대한 토론에 참여하고 있습니다. 당신의 역할은 이 주장에 찬성하는 입장에서 논증하는 것입니다.  
 
             ### **진행 방식:**  
@@ -170,13 +166,13 @@ class Debate_2(Progress):
             간결하면서도 설득력 있게 작성하세요. 적용 가능한 경우, 사실적 근거를 제공하세요.
             """
             prompt += f"당신의 주장에서 독특한 특징을 강조하세요. {self.participant[result['speaker']].name}의 관점에서 생각해 보세요."
-            
             result["message"] = self.generate_text(result["speaker"], prompt)
 
         elif step == 4:
             # 4. 판사가 변론 준비시간 1초 제공
             result["speaker"] = "judge_1"
             result["message"] ="양측이 초기 주장을 제시하였습니다. 반론을 준비할 시간을 가지세요."
+
             time.sleep(1)
 
         elif step == 5:
@@ -218,14 +214,12 @@ class Debate_2(Progress):
             **토론 주제:** {self.data['topic']}  
             **이전 발언:** {self.data['debate_log'][-3]}  
             """
-
             prompt += f"당신의 주장에서 독특한 특징을 강조하세요. {self.participant[result['speaker']].name}의 관점에서 생각해 보세요."
-            
             result["message"] = self.generate_text(result["speaker"],prompt)
         elif step == 6:
             # 6. 찬성 측 변론
             result["speaker"] = "pos"
-            prompt =  f"""
+            prompt = f"""
             당신은 **"{self.data['topic']}"** 주제에 대한 토론에 참여하고 있습니다. 당신의 역할은 **찬성 측 입장에서 반대 측(negative)의 주장에 반박하는 것**입니다.  
 
             ### **진행 방식:**  
@@ -261,16 +255,14 @@ class Debate_2(Progress):
             **토론 주제:** {self.data['topic']}  
             **이전 발언:** {self.data['debate_log'][-3]}  
             """
-            
-
             prompt += f"당신의 주장에서 독특한 특징을 강조하세요. {self.participant[result['speaker']].name}의 관점에서 생각해 보세요."
-            
             result["message"] = self.generate_text(result["speaker"],prompt)
 
         elif step == 7:
             # 7. 판사가 최종 주장 시간 부여
             result["speaker"] = "judge_1"
             result["message"] = "이제 토론의 마지막 단계로 접어들고 있습니다. 양측 모두 최종 발언을 할 기회를 가지게 됩니다."
+
             time.sleep(1)
 
         elif step == 8:
@@ -312,7 +304,6 @@ class Debate_2(Progress):
             **이전 발언:** {self.data['debate_log'][:-2]}  
             """
             prompt += f"당신의 주장에서 독특한 특징을 강조하세요. {self.participant[result['speaker']].name}의 관점에서 생각해 보세요."
-
             result["message"] = self.generate_text(result["speaker"],prompt)
 
         elif step == 9:
@@ -353,31 +344,33 @@ class Debate_2(Progress):
             **토론 주제:** {self.data['topic']}  
             **이전 발언:** {self.data['debate_log'][:-2]}  
             """
-
             prompt += f"당신의 주장에서 독특한 특징을 강조하세요. {self.participant[result['speaker']].name}의 관점에서 생각해 보세요."
-            
-            
             result["message"] = self.generate_text(result["speaker"],prompt)
 
         elif step == 10:
             # 10. 판사가 판결 준비시간(1초) 부여
             result["speaker"] = "judge_1"
-            result["message"] = "The debate has now concluded. I will take a moment to review all arguments before making a final decision."
+            result["message"] = "토론이 이제 종료되었습니다. 모든 주장을 검토한 후 최종 결정을 내리겠습니다."
+
             time.sleep(1)
 
         
         elif step == 11:
             # 11. 판사가 최종 결론
             result["speaker"] = "judge_1"
-            result["message"] = self.evaluate()
-            debate["status"]["type"] = "end"
+            result["message"] = self.evaluate()['result']
         
+        # elif step == 12:
+        #     result["speaker"] = "summerizer"
+        #     # result["message"] = self.summerizer()['result']
+        #     debate["status"]["type"] = "end"
+
         else:
             result["speaker"] = "SYSTEM"
-            result["message"] = "The debate has already concluded."
+            result["message"] = "토론이 이미 종료되었습니다."
         
         debate["debate_log"].append(result)
-
+            # print(self.summerizer())
         # if result["speaker"] == "pos":
         #     debate["debate_log_pos"].append(result["message"])
 
@@ -394,7 +387,7 @@ class Debate_2(Progress):
 
 
 
-    def evaluate(self):
+    def evaluate(self) -> dict:
         # 찬성, 반대측 각각 토론 로그
         pos_log = next((pos_message for pos_message in self.data["debate_log"] if pos_message["speaker"] == "pos"))
         neg_log = next((pos_message for pos_message in self.data["debate_log"] if pos_message["speaker"] == "neg"))
@@ -405,114 +398,112 @@ class Debate_2(Progress):
         
         # Generate the evaluation text from the judge
         prompt_logicality = f"""
-        당신은 논리적 추론 및 논증 분석의 전문가입니다. 주어진 두 개의 글을 상호 비교하여 **논리적 타당성을 100점 척도로 평가**하는 것이 당신의 역할입니다.  
+        You are an expert in logical reasoning and argument analysis. Your task is to evaluate the logical soundness of the following two passages relative to each other on a 100-point scale.
 
-        ### **전문가로서의 역할:**  
-        - 당신은 논리적 일관성, 논증 구조, 논거의 강도를 평가하는 데 뛰어난 분석가입니다.  
-        - **편견 없이, 논리적 근거만을 기준으로 평가**합니다.  
-        - 체계적인 접근 방식을 통해 논리적 강점과 약점을 식별합니다.  
+        ### Your Expertise:
+        - You are a highly skilled evaluator of logical consistency, reasoning structures, and argumentation strength.
+        - Your assessment is based purely on logic, without bias or subjective opinions.
+        - You follow a systematic approach to identify logical strengths and weaknesses.
 
-        ### **평가 기준:**  
-        - 논증이 **일관되고 논리적으로 구조화**되어 있는가?  
-        - **논리적 오류**(흑백논리, 순환논법, 논점 일탈 등)를 피하고 있는가?  
-        - **충분한 근거를 제공**하며, 논리적 약점이 최소화되어 있는가?  
+        ### Evaluation Criteria:
+        - Is the argument consistent and logically structured?
+        - Does it avoid logical fallacies (e.g., black-and-white thinking, circular reasoning, red herrings)?
+        - Does it provide well-supported claims with minimal weaknesses in reasoning?
 
-        ### **작업 지침:**  
-        1. 각 글을 분석하고 **논리적으로 강한 부분**을 식별하세요.  
-        2. **논리적 오류나 약점**이 있다면 구체적으로 지적하세요.  
-        3. 분석을 **명확하고 간결하게 요약**하세요.  
-        4. 최종적으로 **점수를 포함한 평가 결과**를 제공하세요.  
+        ### Task Instructions:
+        1. Analyze each passage and highlight specific points where the argument is logically strong.
+        2. Identify any logical fallacies or weaknesses, if present.
+        3. Summarize your evaluation with a clear, concise explanation.
+        4. Ensure that the final output includes a score at the end.
 
-        **[글 1]**  
-        {pos_log}  
+        **[Passage 1]**  
+        {pos_log}
 
-        **[글 2]**  
-        {neg_log}  
+        **[Passage 2]**  
+        {neg_log}
 
-        ### **출력 형식:**  
+        ### Output Format:
+        - **Passage 1 Analysis:** (Detailed analysis of logical strengths and weaknesses)
+        - **Passage 1 Logical Soundness Score(pos): Score
 
-        - **글 1 분석:** (논리적 강점과 약점에 대한 상세 분석)  
-        - **글 1 논리적 타당성 점수 (pos): 점수**  
-
-        - **글 2 분석:** (논리적 강점과 약점에 대한 상세 분석)  
-        - **글 2 논리적 타당성 점수 (neg): 점수**  
+        - **Passage 2 Analysis:** (Detailed analysis of logical strengths and weaknesses)
+        - **Passage 2 Logical Soundness Score(neg): Score
         """
 
 
 
         prompt_rebuttal = f"""
-        당신은 논증 분석 및 반박 효과성 평가의 전문가입니다. 주어진 두 개의 반박문을 상호 비교하여 **반박의 강도를 100점 척도로 평가**하는 것이 당신의 역할입니다.  
+        You are an expert in argument analysis and rebuttal effectiveness evaluation. Your task is to assess the **rebuttal strength** of the following two passages relative to each other on a 100-point scale.
 
-        ### **전문가로서의 역할:**  
-        - 당신은 **반박 논거의 효과성**과 **논리적 반박의 강도**를 평가하는 데 전문성을 갖추고 있습니다.  
-        - **객관적인 논리적 엄밀성을 바탕으로 공정하게 평가**합니다.  
-        - 반박의 강점과 약점을 체계적으로 분석합니다.  
+        ### Your Expertise:
+        - You specialize in evaluating the effectiveness of counterarguments and logical refutations.
+        - Your assessment is **objective and based purely on logical rigor** without bias.
+        - You systematically identify the strengths and weaknesses of each rebuttal.
 
-        ### **평가 기준:**  
-        - 반박이 상대의 주장을 **직접적으로 반박하며 논파하는가?**  
-        - **타당한 논리, 일관된 사고, 강력한 근거**를 활용하고 있는가?  
-        - **허수아비 논법, 논점 일탈, 논리적 왜곡** 등의 오류를 피하고 있는가?  
-        - 반박이 **명확하고 설득력 있게 구성**되어 있는가?  
+        ### Evaluation Criteria:
+        - Does the rebuttal directly address and dismantle the opposing argument effectively?
+        - Does it use sound reasoning, logical consistency, and strong evidence?
+        - Does it avoid logical fallacies such as strawman arguments, misrepresentation, or red herrings?
+        - Is the rebuttal structured in a coherent and persuasive manner?
 
-        ### **작업 지침:**  
-        1. 각 반박문의 **강점과 효과적인 논리적 반박 요소**를 분석하세요.  
-        2. **논리적 약점이나 오류**가 있다면 명확히 지적하세요.  
-        3. 반박의 **전반적인 효과성과 상대 주장을 얼마나 효과적으로 반박했는지** 요약하세요.  
-        4. 최종적으로 **100점 척도의 반박 강도 점수를 포함한 평가**를 제공하세요.  
+        ### Task Instructions:
+        1. Analyze each passage’s **rebuttal strength**, identifying key points where the argument is particularly effective.
+        2. Highlight any **logical weaknesses or fallacies** that undermine the rebuttal.
+        3. Summarize the overall effectiveness of the rebuttal and how well it counters the opposing stance within the analysis.
+        4. Provide a **final rebuttal strength score** on a **100-point scale**.
 
-        **[반박문 1]**  
-        {pos_rebuttal}  
+        **[Rebuttal 1]**  
+        {pos_rebuttal}
 
-        **[반박문 2]**  
-        {neg_rebuttal}  
+        **[Rebuttal 2]**  
+        {neg_rebuttal}
 
-        ### **출력 형식:**  
+        ### Output Format:
+        - **Rebuttal 1 Analysis:** (Detailed analysis of the logical strengths and weaknesses)
+        - **Rebuttal 1 Strength Score (pos):** Score
 
-        - **반박문 1 분석:** (논리적 강점과 약점에 대한 상세 분석)  
-        - **반박문 1 강도 점수 (pos): 점수**  
+        - **Rebuttal 2 Analysis:** (Detailed analysis of the logical strengths and weaknesses)
+        - **Rebuttal 2 Strength Score (neg):** Score
 
-        - **반박문 2 분석:** (논리적 강점과 약점에 대한 상세 분석)  
-        - **반박문 2 강도 점수 (neg): 점수**  
-        """
-
+        """ 
 
 
         prompt_persuasion = f"""
-        당신은 논증 분석 및 설득력 평가의 전문가입니다. 주어진 두 개의 글을 비교하여 **설득력을 100점 척도로 평가**하는 것이 당신의 역할입니다.  
+        You are an expert in argument analysis and persuasion assessment. Your task is to evaluate the **persuasiveness** of the following two passages relative to each other on a 100-point scale.
 
-        ### **전문가로서의 역할:**  
-        - 당신은 **논증의 설득력**을 평가하는 데 전문성을 갖추고 있습니다.  
-        - **논리적 타당성과 수사적(설득적) 효과**를 모두 고려하여 분석합니다.  
-        - **체계적인 분석을 바탕으로 객관적으로 평가**하며, 편향되지 않은 결론을 도출합니다.  
+        ### Your Expertise:
+        - You specialize in assessing the **persuasive strength** of arguments in debates and discussions.
+        - Your evaluation considers both logical reasoning and rhetorical effectiveness.
+        - Your judgment is **objective and based on structured analysis**, free from bias.
 
-        ### **평가 기준:**  
-        - **명확성 & 일관성**: 주장이 명확하고 구조적으로 잘 정리되어 있는가?  
-        - **논리적 타당성**: 논증이 논리적으로 타당하며 오류가 없는가?  
-        - **근거 활용**: 데이터, 사례, 신뢰할 만한 출처를 효과적으로 활용하는가?  
-        - **수사적 & 감성적 설득력**: 설득 전략을 효과적으로 활용하는가?  
-        - **반론 대응력**: 예상되는 반박을 미리 고려하고 효과적으로 대응하는가?  
+        ### Evaluation Criteria:
+        - **Clarity & Coherence**: Is the argument presented in a clear, structured, and engaging manner?
+        - **Logical Soundness**: Does the argument make sense logically and avoid fallacies?
+        - **Use of Evidence**: Does the argument effectively use data, examples, or credible sources?
+        - **Emotional & Rhetorical Appeal**: Does the argument skillfully use rhetorical strategies (e.g., ethos, pathos, logos) to convince the audience?
+        - **Effectiveness in Anticipating & Addressing Counterarguments**: Does the argument proactively refute potential objections and strengthen its stance?
 
-        ### **작업 지침:**  
-        1. 각 글의 **설득력 있는 요소**를 분석하고 강조하세요.  
-        2. **설득력의 약점 또는 부족한 부분**을 지적하세요.  
-        3. 글이 **청중을 얼마나 효과적으로 설득하는지** 요약하세요.  
-        4. 최종적으로 **100점 척도의 설득력 점수를 포함한 평가**를 제공하세요.  
+        ### Task Instructions:
+        1. Analyze each passage’s **persuasive effectiveness**, identifying key elements that make the argument compelling.
+        2. Highlight any **weaknesses or missed opportunities** in persuasion.
+        3. Summarize how effectively the passage **convinces** its audience.
+        4. Provide a **final persuasiveness score** on a **100-point scale**.
 
-        **[글 1]**  
-        {pos_log}  
+        **[Passage 1]**  
+        {pos_log}
 
-        **[글 2]**  
-        {neg_log}  
+        **[Passage 2]**  
+        {neg_log}
 
-        ### **출력 형식:**  
+        ### Output Format:
+        - **Passage 1 Analysis:** (Detailed analysis of persuasiveness, including strengths and weaknesses)
+        - **Passage 1 Persuasiveness Score (pos): Score
 
-        - **글 1 분석:** (설득력에 대한 상세 분석: 강점 및 약점)  
-        - **글 1 설득력 점수 (pos): 점수**  
-
-        - **글 2 분석:** (설득력에 대한 상세 분석: 강점 및 약점)  
-        - **글 2 설득력 점수 (neg): 점수**  
+        - **Passage 2 Analysis:** (Detailed analysis of persuasiveness, including strengths and weaknesses)
+        - **Passage 2 Persuasiveness Score (neg): Score
         """
-    
+
+   
 
         def extract_score(pattern, text):
             """정규식을 사용하여 점수를 추출하고 정수로 변환하는 함수"""
@@ -542,9 +533,6 @@ class Debate_2(Progress):
                     persuasion_neg * weights["persuasion"])
 
         # 결과 출력
-        print(f"logicality_pos: {logicality_pos}" )
-        print(f"rebuttal_pos: {rebuttal_pos}" )
-        print(f"persuasion_pos: {persuasion_pos}" )
         print(f"match_pos: {match_pos}")
         print(f"match_neg: {match_neg}")
 
@@ -557,8 +545,12 @@ class Debate_2(Progress):
                 self.data["result"] = "draw"
         else:
             self.data["result"] = "draw"
+        
 
-        self.data["evaluate"] = {
+
+
+        return {
+            "result": self.data["result"],
             "logicality_pos": logicality_pos,
             "logicality_neg": logicality_neg,
             "rebuttal_pos": rebuttal_pos,
@@ -567,8 +559,22 @@ class Debate_2(Progress):
             "persuasion_neg": persuasion_neg,
             "match_pos": match_pos,
             "match_neg": match_neg
-        }
+            }
+    
+    # def summerizer(self):
+    #     prompt_summary=f"""
+    #     다음은 토론에 대한 전체 기록입니다. 이를 아래 형식으로 한글로 요약해 주세요.
 
-        self.data["summary"]
+    #     "주제": [토론의 주요 주제를 간결하게 정리]  
+    #     "찬성 측 주장": [찬성 측의 핵심 주장 요약]  
+    #     "반대 측 주장": [반대 측의 핵심 주장 요약]  
+    #     "찬성 측 변론": [찬성 측이 반론에 대응한 내용]  
+    #     "반대 측 변론": [반대 측이 반론에 대응한 내용]  
+    #     "최종 판결": [토론의 결론 또는 심사 결과 요약]  
 
-        return self.data["result"]
+    #     아래는 토론 기록입니다:
+    #     {self.data['debate_log']}
+    #     """
+    #     return self.generate_text("summerizer", prompt_summary)
+
+        
