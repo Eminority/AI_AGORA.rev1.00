@@ -478,10 +478,10 @@ class Debate_2(Progress):
         ### **출력 형식:**  
 
         - **반박문 1 분석:** (논리적 강점과 약점에 대한 상세 분석)  
-        - **반박문 1 강도 점수 (pos): 점수**  
+        - **반박문 1 반박력 점수 (pos): 점수**  
 
         - **반박문 2 분석:** (논리적 강점과 약점에 대한 상세 분석)  
-        - **반박문 2 강도 점수 (neg): 점수**  
+        - **반박문 2 반박력 점수 (neg): 점수**  
         """
 
 
@@ -531,8 +531,8 @@ class Debate_2(Progress):
         def calculate_score(judge, prompt):
             """텍스트 생성 후 점수를 추출하는 함수"""
             result_text = self.generate_text(judge, prompt)
-            return extract_score(r'\(pos\)\:.*?(\d+)(?:\*|\/100)?', result_text), \
-                extract_score(r'\(neg\)\:.*?(\d+)(?:\*|\/100)?', result_text)
+            return int(extract_score(r'\(pos\)\:.*?(\d+)(?:\*|\/100)?', result_text)), \
+                int(extract_score(r'\(neg\)\:.*?(\d+)(?:\*|\/100)?', result_text))
 
         # 각 평가 기준에 대한 점수 추출
         logicality_pos, logicality_neg = calculate_score("judge_1", prompt_logicality)
@@ -542,13 +542,13 @@ class Debate_2(Progress):
         # 최종 점수 계산
         weights = {"logicality": 0.4, "rebuttal": 0.35, "persuasion": 0.25}
 
-        match_pos = (logicality_pos * weights["logicality"] + 
+        match_pos = int((logicality_pos * weights["logicality"] + 
                     rebuttal_pos * weights["rebuttal"] + 
-                    persuasion_pos * weights["persuasion"])
+                    persuasion_pos * weights["persuasion"]))
 
-        match_neg = (logicality_neg * weights["logicality"] + 
+        match_neg = int((logicality_neg * weights["logicality"] + 
                     rebuttal_neg * weights["rebuttal"] + 
-                    persuasion_neg * weights["persuasion"])
+                    persuasion_neg * weights["persuasion"]))
 
         # 결과 출력
         print(f"logicality_pos: {logicality_pos}" )
