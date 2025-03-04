@@ -245,11 +245,13 @@ async def get_ai_list():
         img_id = obj["img"]
         image_from_db = mongodb_connection.select_data_from_id("image", str(img_id))
         image_from_local = os.path.join(IMAGE_SAVE_PATH, image_from_db.get("filename"))
+        result[id]["stats"] = profile_manager.get_stats_by_id(mongodb_connection.get_collection("object"), id)
         if not os.path.exists(image_from_local):
             image_byte = base64.b64decode(image_from_db["data"])
             with open(image_from_local, "wb") as f:
                 f.write(image_byte)
         result[id]["img"] = image_from_db.get("filename")
+
     return result
 
 @app.get("/profile/detail")
