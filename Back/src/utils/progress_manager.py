@@ -50,6 +50,21 @@ class ProgressManager:
                                         "ai"    : "GEMINI",
                                         "img" : None,
                                         "object_attribute": ""}
+            if not participant.get("judge_1"):
+                participant["judge"] = {"name"  : "judge",
+                                        "ai"    : "GEMINI",
+                                        "img" : None,
+                                        "object_attribute": ""}
+            if not participant.get("judge_2"):
+                participant["judge"] = {"name"  : "judge",
+                                        "ai"    : "GEMINI",
+                                        "img" : None,
+                                        "object_attribute": ""}
+            if not participant.get("judge_3"):
+                participant["judge"] = {"name"  : "judge",
+                                        "ai"    : "GEMINI",
+                                        "img" : None,
+                                        "object_attribute": ""}                                 
             if not participant.get("next_speaker_agent"):
                 participant["next_speaker_agent"] = {"name"  : "next_speaker_agent",
                                         "ai"    : "GEMINI",

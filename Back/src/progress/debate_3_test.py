@@ -25,7 +25,7 @@ class DebateMemoryWrapper:
     def save_message(self, speaker: str, message: str, round_number: int = None):
         if round_number is None:
             round_number = self.current_round
-        entry = {"round": round_number, "speaker": speaker, "message": message}
+        entry = {"timestamp": datetime.now(), "round": round_number, "speaker": speaker, "message": message}
         self.custom_history.append(entry)
         formatted = f"[Round {round_number}] {speaker}: {message}"
         sys_msg = SystemMessage(content=f"{speaker} 역할")
@@ -164,6 +164,8 @@ class Debate(Progress):
             **반대측 (Neg):**
             {neg_statements}
             
+            
+
             이제 어느 쪽이 더 설득력 있는지, 그리고 그 이유는 무엇인지 상세하게 서술해 주세요.
             반드시 JSON 형식으로 응답하세요:
             ```json
@@ -241,7 +243,7 @@ class Debate(Progress):
         self.progress_round1_prompt = PromptTemplate(
             input_variables=["topic"],
             template="""
-            [SYSTEM: 당신은 토론 진행자입니다. 역할은 라운드 안내 및 다음 발언자 소개입니다. 참가자로서 발언하지 마십시오.]
+            [SYSTEM: 당신은 토론 진행자입니다. 역할은 라운드 안내 및 다음 발언자 소개입니다. 참가자로서 발언하지 마십시오. 참가자는 {candidates}입니다.]
             Round 1 시작:
             주제: "{topic}"
             각 참가자께서는 자신의 주장을 처음으로 제시해 주세요.
