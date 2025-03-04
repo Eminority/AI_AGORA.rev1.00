@@ -26,15 +26,6 @@ body {
 }
 
 
-.blur-index-bg{
-    filter: blur(15px); /* 블러 효과 */
-    z-index: -1;
-}
-
-.blur-index-bg img{
-    z-index: 1;
-}
-
 .progress_request_box{
     border-radius: 25px;
     border: 1px solid #ddd;
@@ -57,3 +48,24 @@ body {
     outline: none;
     box-shadow: none;
 }
+
+.bg-custom-nav{
+    background-color: #6B5B95 !important;
+}
+
+.bg-custom-nav a{
+    color: #F8E8EE;
+}
+
+.create-button{
+    width: 100%;
+    height: 150px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: #7f71a1;
+    color: #FFFFFF;
+    border-radius: 12px;
+    cursor: pointer;
+}
+

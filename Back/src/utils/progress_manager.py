@@ -47,7 +47,6 @@ class ProgressManager:
                 generated_participant = self.set_participant(participants=participant)
                 progress = Debate(participant=generated_participant, generate_text_config=self.generate_text_config["debate"])
                 #progress.vectorstore = self.ready_to_progress(topic=topic)
-                progress.vectorstore = self.ready_to_progress_with_personality(topic, participant)
         # 판사 3명인 토론 타입
         elif progress_type == "debate_2":
             # self.chect_topic_for_debate(topic) 생략
@@ -57,23 +56,48 @@ class ProgressManager:
                 participant["judge_2"] = {"ai":"GEMINI", "name":"judge_2"}
             if not participant.get("judge_3"):
                 participant["judge_3"] = {"ai":"GEMINI", "name":"judge_3"}
-            generated_participant = self.set_participant(participants=participant)
+            generated_participant = self.set_participant(participant)
             progress = Debate_2(participant=generated_participant, generate_text_config=self.generate_text_config["debate"])
         # 발언자 결정 에이전트 집어넣은 타입
         elif progress_type == "debate_3":
             if not participant.get("judge"):
-                participant["judge"] = {"ai":"GEMINI", "name":"judge"}
-            if not participant.get("progress_agent"):
-                participant["progress_agent"] = {"ai":"GEMINI", "name":"progress_agent"}
+                participant["judge"] = {"name"  : "judge",
+                                        "ai"    : "GEMINI",
+                                        "img" : None,
+                                        "object_attribute": ""}
+            if not participant.get("judge_1"):
+                participant["judge"] = {"name"  : "judge",
+                                        "ai"    : "GEMINI",
+                                        "img" : None,
+                                        "object_attribute": ""}
+            if not participant.get("judge_2"):
+                participant["judge"] = {"name"  : "judge",
+                                        "ai"    : "GEMINI",
+                                        "img" : None,
+                                        "object_attribute": ""}
+            if not participant.get("judge_3"):
+                participant["judge"] = {"name"  : "judge",
+                                        "ai"    : "GEMINI",
+                                        "img" : None,
+                                        "object_attribute": ""}                                 
             if not participant.get("next_speaker_agent"):
-                participant["next_speaker_agent"] = {"ai":"GEMINI", "name":"next_speaker_agent"}
-            generated_participant = self.set_participant(participants=participant)
-            progress = Debate_3(participant=generated_participant, generate_text_config=self.generate_text_config["debate"])
-
+                participant["next_speaker_agent"] = {"name"  : "next_speaker_agent",
+                                        "ai"    : "GEMINI",
+                                        "img" : None,
+                                        "object_attribute": ""}
+            if not participant.get("progress_agent"):
+                participant["progress_agent"] = {"name"  : "progress_agent",
+                                        "ai"    : "GEMINI",
+                                        "img" : None,
+                                        "object_attribute": ""}
+            generated_participant = self.set_participant(participant)
+            progress = Debate_3(participant=generated_participant,
+                              generate_text_config=self.generate_text_config["debate"])
 
         if progress:
             progress.data["topic"] = topic
             id = str(self.mongoDBConnection.insert_data("progress", progress.data))
+            progress.vectorstore = self.ready_to_progress_with_personality(topic, generated_participant)
             progress.data["_id"] = id
             self.progress_pool[id] = progress
             result["result"] = True
@@ -91,8 +115,9 @@ class ProgressManager:
     def ready_to_progress_with_personality(self, topic, participants):
         articles = []
         articles.extend(self.web_scrapper.get_articles(topic=topic))
-        for participant in participants:
-            articles.extend(self.web_scrapper.get_articles(participant["name"]))
+        for participant in participants.values():
+            print(participant.name)
+            articles.extend(self.web_scrapper.get_articles(participant.name))
         print(articles)
         return self.vectorstore_handler.vectorstoring(articles)
     
