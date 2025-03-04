@@ -15,3 +15,45 @@
 .floating-btn:hover {
     transform: scale(1.1);
 }
+
+html{
+    background: linear-gradient(to bottom, #ACA6C8, #DECBD0);
+    background-attachment: fixed; /*스크롤해도 배경 고정*/
+}
+
+body {
+    background: transparent; /* body의 배경을 투명하게 설정 */
+}
+
+
+.blur-index-bg{
+    filter: blur(15px); /* 블러 효과 */
+    z-index: -1;
+}
+
+.blur-index-bg img{
+    z-index: 1;
+}
+
+.progress_request_box{
+    border-radius: 25px;
+    border: 1px solid #ddd;
+    background-color: #CCC6D8;
+}
+
+.progress_request_input,
+.progress_request_input:focus{
+    font-size:30px;
+    background-color: transparent;
+    border: none;
+    outline: none;
+    box-shadow: none;
+}
+
+.progress_request_box select,
+.progress_request_box select:focus{
+    background-color: #CDCCDD;
+    border: 1px solid #DDD;
+    outline: none;
+    box-shadow: none;
+}

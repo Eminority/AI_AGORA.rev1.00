@@ -69,12 +69,12 @@ class GeminiAPI(AI_Instance):
 
         full_prompt = ""
 
-        if self.personality:
-            full_prompt += f"System: {self.personality}\n"
         if context:
             full_prompt += f"Context: {context}\n"
         if user_prompt:
             full_prompt += f"User: {user_prompt}"
+        if self.personality:
+            full_prompt += f"Personality: {self.personality}\n"
 
 
         try:

@@ -3,7 +3,7 @@ import cv2
 import json
 
 class YOLODetect:
-    def __init__(self, model_path="yolo11n.pt", confidence_threshold=0.5):
+    def __init__(self, model_path="yolo\\yolo11n.pt", confidence_threshold=0.5):
         """
         YOLO 객체 탐지 클래스
         :param model_path: 사용할 YOLO 모델 경로
@@ -12,7 +12,7 @@ class YOLODetect:
         self.model = YOLO(model_path)
         self.confidence_threshold = confidence_threshold
 
-    def detect_objects(self, image_path):
+    def detect_objects(self, image_path) -> list:
         """
         이미지에서 객체를 탐지하고 JSON 형식으로 반환
         :param image_path: 처리할 이미지 파일 경로

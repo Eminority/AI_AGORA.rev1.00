@@ -20,7 +20,7 @@ class ProfileManager:
             if str(raw_object.get("_id")):
                 self.objectlist[profile.data["_id"]] = profile
 
-    def create_profile(self,
+    async def create_profile(self,
                         name:str=None,
                         img:str=None,
                         ai:str=None):

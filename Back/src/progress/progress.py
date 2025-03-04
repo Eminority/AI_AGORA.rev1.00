@@ -1,6 +1,4 @@
-from abc import ABC, abstractmethod
-
-class Progress(ABC):
+class Progress:
     """
     ai끼리의 대화를 진행시키기 위한 모듈의 상위 클래스
     progress, evaluate method 구현 필요.
@@ -19,11 +17,9 @@ class Progress(ABC):
         self.generate_text_config = generate_text_config
         self.vectorstore = None
 
-    @abstractmethod
     def progress(self):
         pass
 
-    @abstractmethod
     def evaluate(self):
         pass
 

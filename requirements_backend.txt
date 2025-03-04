@@ -20,4 +20,8 @@ wikipedia
 google
 googlesearch-python
 webserver
+<<<<<<< HEAD
 duckduckgo-search
+=======
+duckduckgo-search
+>>>>>>> 544df83a1ddf3ae01212e21c7ee99469b307d3cd

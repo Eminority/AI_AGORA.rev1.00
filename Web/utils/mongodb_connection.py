@@ -1,4 +1,3 @@
-from dotenv import load_dotenv
 from pymongo import MongoClient
 from bson.objectid import ObjectId
 
@@ -40,12 +39,7 @@ class MongoDBConnection:
 
     #RDBMS 쿼리문에서의 Update문을 대체.
     def update_data(self, collection_name: str, data:dict):
-        original_id = data["_id"]
-        if type(original_id) != ObjectId:
-            data["_id"] = ObjectId(data["_id"])
-        result = self.db[collection_name].update_one({"_id":data["_id"]}, {"$set":data})
-        data["_id"] = original_id
-        return result
+        return self.db[collection_name].update_one({"_id":data["_id"]}, {"$set":data})
 
     def close_connection(self):
         """

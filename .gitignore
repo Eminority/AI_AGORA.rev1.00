@@ -174,3 +174,7 @@ cython_debug/
 # 서버에 자동으로 저장되는 이미지 같이 안올라가게 하기
 Back/assets/image
 Web/static/img/profile
+Web/static/image/profile
+assets/image
+Back/src/.env
+**/.env

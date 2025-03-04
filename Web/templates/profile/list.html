@@ -1,0 +1,40 @@
+{% extends 'layout/body.html' %}
+
+{% block title %} AI Agora Profiles {% endblock %}
+{% block add_scriptsheet %}
+<script src="{{ url_for('static', path='js/link_ai_profile.js') }}"></script>
+{% endblock %}
+
+{% block content %}
+    <div class="content-container">
+        <h1>  </h1>
+        <div class="jumbotron text-center">
+            <a href="{{ request.url_for('profile_create_page') }}">
+                <h1>AI 생성하기</h1>
+            </a>
+        </div>
+    </div>
+    
+    <div class="">
+        <div class="ai_profiles_container container-sm">
+            <div class="row">
+                {% for id, data in profiles.items() %}
+                    <div class="ai_profile col-sm-6" data-profile-id="{{ id }}">
+                        <div class="media border p-1 m-1">
+                            <img src="{{ url_for('get_image', filename=data.img) }}" style="width: 60px; height: 60px;"/>
+                            <div class="media-body">
+                                <h4>이름 : {{ data.name }}</h4>
+                                <ul>
+                                    <li>AI : {{ data.ai }}</li>
+                                    <li>속성 : {{ data.object_attribute }}</li>
+                                    <li>생성 시간 : {{ data.create_time }}</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    </div>
+{% endblock %}

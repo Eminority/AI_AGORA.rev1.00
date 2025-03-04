@@ -97,9 +97,9 @@ if __name__ == "__main__":
                 }
     
     
-    judge_1 = {"ai": "GEMINI"}
-    judge_2 = {"ai": "GEMINI"}
-    judge_3 = {"ai": "GEMINI"}
+    judge_1 = {"ai": "GEMINI", "name":"judge"}
+    judge_2 = {"ai": "GEMINI", "name":"judge"}
+    judge_3 = {"ai": "GEMINI", "name":"judge"}
 
 
     participants = {"pos" : user, "neg" : opponent, "judge_1" : judge_1, "judge_2" : judge_2, "judge_3" : judge_3}
@@ -107,7 +107,7 @@ if __name__ == "__main__":
     # topic = input("주제 입력 : ")
     topic = "Is it beneficial to walk your pet?"
 
-    progress_manager.create_progress("debate", participant=participants, topic=topic)
+    progress_manager.create_progress("debate_2", participant=participants, topic=topic)
 
     debates = progress_manager.progress_pool.values()
     ###############################임시로 입력받는 테스트 코드
