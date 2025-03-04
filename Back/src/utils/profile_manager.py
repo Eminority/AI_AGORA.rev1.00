@@ -160,7 +160,11 @@ class ProfileManager:
         avg_rebuttal   = sum_rebuttal   / score_count if score_count else 0.0
         avg_persuasion = sum_persuasion / score_count if score_count else 0.0
         avg_match      = sum_match      / score_count if score_count else 0.0
-        winning_rate = wins/losses*100
+
+        if total_debates == 0:
+            winning_rate = 0  
+        else:
+            winning_rate = (wins / total_debates) * 100.0
         return {
             "target_name": target_name,
             "target_id": target_id,
