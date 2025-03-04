@@ -22,6 +22,14 @@ class MongoDBConnection:
         except Exception as e:
             print("❌ Connection failed:", e)
 
+    def get_collection(self, collection_name: str):
+        """
+        지정된 컬렉션 객체를 반환합니다.
+        :param collection_name: 컬렉션 이름
+        :return: pymongo.collection.Collection 객체
+        """
+        return self.db[collection_name]
+
     #RDBMS에서의 insert 문을 대체
     def insert_data(self, collection_name: str, data:dict):
         return self.db[collection_name].insert_one(data).inserted_id
