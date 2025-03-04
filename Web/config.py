@@ -1,1 +1,0 @@
-debate_server_uri = None

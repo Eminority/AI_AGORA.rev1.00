@@ -26,7 +26,12 @@ class Debate_2(Progress):
             # debate 필드 초기화
             self.data = {
                 "type": "debate_2",
-                "participants": None,
+                "participants": {position : {"id"   : data.id,
+                                 "name" : data.name,
+                                  "img" : data.img,
+                                  "ai"  : data.ai_instance.model_name,
+                                  "object_attribute": data.object_attribute}
+                                  for position, data in participant.items()},
                 "topic": None,
                 "status": {
                     "type": None,  # "in_progress" 또는 "end" 등

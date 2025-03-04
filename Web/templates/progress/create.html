@@ -1,0 +1,160 @@
+{% extends 'layout/body.html' %}
+
+{% block title %} AI Agora Create AI {% endblock %}
+{% block add_scriptsheet %}
+{% endblock %}
+
+{% block content %}
+    <div class="">
+        <div class="container progress_request_box">
+            <form id="progressForm" method="post">
+                
+                <div class="row">
+                    <label for="topic"></label>
+                    <input class="form-control progress_request_input" type="text" id="topic" name="topic" placeholder="주제 입력">
+                </div>
+                <div class="row">
+                    <div class="col-sm-4">
+                        <label for="generate_type">대화 생성 방식</label>
+                        <select id="generate_type" name="type" class="custom-select">
+                            <option value="auto" selected>참가자 자동 전체 입력</option>
+                            <option value="select-participant">참가자 선택</option>
+                        </select>
+                    </div>
+                    <div class="col-sm-4 select-others">
+                        <label for="pos_id">찬성 측 AI:</label>
+                        <select id="pos_id" name="pos_id" class="custom-select">  
+                            {% for id, data in profiles.items() %}
+                                <option value="{{ data._id }}"> {{ data.name }} - {{ data.ai }} </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-sm-4 select-others">
+                        <label for="neg_id">반대 측 AI:</label>
+                        <select id="neg_id" name="neg_id" class="custom-select">  
+                            {% for id, data in profiles.items() %}
+                                <option value="{{ data._id }}"> {{ data.name }} - {{ data.ai }} </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+                <div id= "participants" class="select-others row">
+                    <div class="col-sm-4">
+                        <div class="select-others">
+                            <label for="progress_type">세션 형태</label>
+                            <select id="progress_type" class="custom-select" name="type">
+                                <option value="debate">기본 토론</option>
+                                <option value="debate_2">토론 - 판사 3</option>
+                                <option value="debate_3">토론 - 진행자 추가</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="col-sm-4"></div>
+                    <div class="col-sm-4"></div>
+                </div>
+                <div class="row p-3">
+                    <div class="col-sm-9"><!-- 빈칸 --></div>
+                    <div class="col-sm-3">
+                        <button class="btn btn-primary btn-block shadow" type="submit">시작하기</button>
+                    </div>
+                </div>
+            </form>
+            <hr/>
+        </div>
+        <div class="container p-3">
+                <button class="btn btn-primary shadow" type="button"
+                    onclick='location.href="/progress"'>목록으로 돌아가기</button>
+            <div class="col-sm-3"><!-- 빈칸 --></div>
+        </div>
+    </div>
+
+
+
+
+
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            const generateType = document.getElementById("generate_type");
+            const selectOthers = document.querySelectorAll(".select-others");
+            const participants_selector = document.getElementById("participants")
+            function toggleSelectOthers() {
+                selectOthers.forEach(element => {
+                    if (generateType.value === "auto") {
+                        element.style.display = "none";
+                        participants_selector.classList = "select-others row";
+
+                    } else if (generateType.value === "select-participant") {
+                        element.style.display = "block";
+                        participants_selector.classList = "select-others row d-flex justify-content-center";
+                    }
+                });
+            }
+
+            // 초기 상태 설정
+            toggleSelectOthers();
+
+            // select 값이 변경될 때 이벤트 추가
+            generateType.addEventListener("change", toggleSelectOthers);
+        });
+
+
+
+        document.getElementById("progressForm").addEventListener("submit", async function(event) {
+            event.preventDefault(); // 기본 제출 동작 방지
+            
+            const generate_type = document.getElementById("generate_type").value;
+            const topic = document.getElementById("topic").value;
+            if (generate_type === "auto"){
+                /// 자동 참가자 입력의 경우
+                const actionUrl = `{{ request.url_for('progress_auto_generate') }}?topic=${topic}`;
+                try {
+                // ✅ 10초 타임아웃을 적용하여 fetch 실행
+                    const result = await fetch(actionUrl, {
+                        method: "get"
+                    }); // 100초 타임아웃 적용
+                    const data = await result.json();
+                    alert(data.message)
+                }  catch (error) {
+                    console.error("에러 발생:", error);
+                    alert("토론 생성 중 오류가 발생했습니다.");
+                }
+            } else if (generate_type === "select-participant"){
+                ///수동 참가자 선택의 경우
+                const actionUrl = "{{ request.url_for('progress_create_request') }}";
+                const progressType = document.getElementById("progress_type").value
+                const pos_id = document.getElementById("pos_id").value
+                const neg_id = document.getElementById("neg_id").value
+                
+                if (pos_id === neg_id) {
+                    alert("같은 AI를 중복으로 선택할 수 없습니다.");
+                    return;
+                }
+                const requestData = {
+                    "type":progressType,
+                    "topic":topic,
+                    "participants":{
+                        "pos":{"id":pos_id},
+                        "neg":{"id":neg_id}
+                    }
+                }
+                try {
+                    // ✅ 10초 타임아웃을 적용하여 fetch 실행
+                    const result = await fetch(actionUrl, {
+                        method: "POST",
+                        action: "{{ request.url_for('progress_create_request') }}",
+                        headers:{"Content-Type":"application/json"},
+                        body:JSON.stringify(requestData)
+                        // FormData를 그대로 전송
+                    }); // 100초 타임아웃 적용
+                    const data = await result.json();
+                    if (data.result){
+                        alert("입력하신 주제로 생성되는 중입니다.");
+                    }
+                } catch (error) {
+                    console.error("에러 발생:", error);
+                    alert("토론 생성 중 오류가 발생했습니다.");
+                }
+            }
+        });
+    </script>
+{% endblock %}

@@ -119,4 +119,3 @@ class WebScrapper:
                     articles_data.append({"content": article_content})
 
         return articles_data
-

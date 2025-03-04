@@ -25,7 +25,14 @@ class Debate(Progress):
         if self.data == None:
             # debate 필드 초기화
             self.data = {
-                "participants": None,
+                # 다양한 progress형태에 대응하기 위해 type:debate 추가
+                "type": "debate",
+                "participants": {position : {"id"   : data.id,
+                                 "name" : data.name,
+                                  "img" : data.img,
+                                  "ai"  : data.ai_instance.model_name,
+                                  "object_attribute": data.object_attribute}
+                                  for position, data in participant.items()},
                 "topic": None,
                 "status": {
                     "type": None,  # "in_progress" 또는 "end" 등
@@ -70,7 +77,7 @@ class Debate(Progress):
             return result
 
         # 단계(step)가 설정되어 있지 않다면 1로 초기화
-        if "step" not in debate["status"]:
+        if "step" not in debate["status"] or debate["status"]["step"] == 0:
             debate["status"]["step"] = 1
         step = debate["status"]["step"]
 

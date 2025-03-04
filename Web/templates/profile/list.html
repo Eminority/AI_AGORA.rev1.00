@@ -1,0 +1,66 @@
+{% extends 'layout/body.html' %}
+
+{% block title %} AI Agora Profiles {% endblock %}
+{% block add_scriptsheet %}
+<script src="{{ url_for('static', path='js/link_ai_profile.js') }}"></script>
+{% endblock %}
+
+{% block content %}
+    <div class="content-container">
+        <div class="container-sm text-center p-3">
+            <div class="create-button" onclick="location.href='{{ request.url_for('profile_create_page') }}'">
+                    <h1>프로필 생성하기</h1>
+            </div>
+        </div>
+    </div>
+    
+    <div class="">
+        <div class="ai_profiles_container container-sm">
+            <div class="row">
+                <div class="ai_profile_header">
+                    <div class="col-sm-1">이미지</div>
+                    <div class="col-sm-2">이름</div>
+                    <div class="col-sm-2">AI</div>
+                    <div class="col-sm-1">승/패</div>
+                    <div class="col-sm-2">논리력</div>
+                    <div class="col-sm-2">반박력</div>
+                    <div class="col-sm-2">설득력</div>
+                </div>
+                {% for id, data in profiles.items() %}
+                    <div class="ai_profile" data-profile-id="{{ id }}">
+                        
+                        <div class="col-sm-1">
+                            <img src="{{ url_for('get_image', filename=data.img) }}" style="width: 100%; height: auto;"/>
+                        </div>
+                        <div class="col-sm-2">
+                            {{ data.name }}
+                        </div>
+                        <div class="col-sm-2">
+                            {{ data.ai }}
+                        </div>
+                        <div class="col-sm-1">
+                            {{ data.stats.wins }} / {{ data.stats.losses }} 
+                        </div>
+                        <div class="col-sm-2">
+                            {{ data.stats.avg_logicality }}
+                        </div>
+                        <div class="col-sm-2">
+                            {{ data.stats.avg_rebuttal }}
+                        </div>
+                        <div class="col-sm-2">
+                            {{ data.stats.avg_persuasion }}
+                        </div>
+
+                        </div>
+                            <ul>
+                                <li></li>
+                                <li>속성 : {{ data.object_attribute }}</li>
+                                <li>생성 시간 : {{ data.create_time }}</li>
+                            </ul>
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    </div>
+{% endblock %}

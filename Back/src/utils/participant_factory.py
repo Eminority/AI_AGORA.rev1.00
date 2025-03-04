@@ -14,11 +14,10 @@ class ParticipantFactory:
         # ai type을 기반으로 instance 만들어주기
         ai_type = data.get("ai", None)
         ai_instance = self.ai_factory.create_ai_instance(ai_type)
+        ai_instance.set_personality(data.get("object_attribute"))
         # 만들어진 ai instance를 참가자 형태로 만들기
-
         return Participant(id=str(data.get("_id", "")),
                            name=data.get("name", ""),
                            ai_instance=ai_instance,
-                           img=data.get("img"))
-
-
+                           img=data.get("img"),
+                           object_attribute=data.get("object_attribute"))

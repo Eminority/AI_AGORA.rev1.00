@@ -12,7 +12,7 @@ class AI_Factory:
         self.api = api_keys
 
         # Groq에서 지원하는 모델 목록
-        self.groq_models = {
+        self.groq_models = [
             "deepseek-r1-distill-llama-70b",
             "deepseek-r1-distill-qwen-32b",
             "gemma2-9b-it",
@@ -26,7 +26,7 @@ class AI_Factory:
             "mixtral-8x7b-32768",
             "qwen-2.5-32b",
             "qwen-2.5-coder-32b"
-        }
+        ]
 
         # Ollama에서 사용할 수 있는 모델 목록
         self.ollama_models = [

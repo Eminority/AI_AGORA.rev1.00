@@ -1,0 +1,196 @@
+{% extends 'layout/body.html' %}
+
+{% block title %} AI Agora Create AI {% endblock %}
+{% block add_scriptsheet %}
+<script src="{{ url_for('static', path='js/upload_to_image_preview.js') }}"></script>
+{% endblock %}
+
+{% block content %}
+    <div class="">
+        <div class="container-sm">
+            <div class="container ">
+                <form id="object_detect" action="/profile/objectdetect" method="post">
+                    <div class="row imagePreview">
+                        <img id="imagePreview" src="" alt="미리보기" style="max-width: 300px; display: none;">
+                    </div>
+                    <div class="row p-3">
+                        <div class="col-sm-3"></div>
+                        <div class="col-sm-6">
+                            <label class="object-detect-upload" for="imageUpload">이미지에서 객체 탐지하기</label>
+                            <input type="file" class="" id="imageUpload" name="image" placeholder="" accept="image/*" style="display: none;">
+                        </div>
+                        <div class="col-sm-3"></div>
+                    </div>
+                    <div class="row p-3">
+                        <div class="col-sm-3"></div>
+                        <div class="col-sm-6">
+                            <input id="detectButton" class="object-detect-upload" type="submit" value="객체 탐지" style="display: none;"/>
+                        </div>
+                        <div class="col-sm-3"></div>
+                    </div>
+                </form>
+            </div>
+            <div id="generateAI_area" class="container form-group p-3" style="display: none;">
+                <form id="ImageSelectedForm" method="post" enctype="multipart/formdata" data-create-profile-url = "{{ request.url_for('profile_create_request') }}">
+                    <div class="row">
+                        <div class="col-sm-1"></div>
+                        <div class="col-sm-5">
+                            <p>탐지된 객체 목록</p>
+                            <div id="detected-list" class=""></div>
+                        </div>
+                        <div class="col-sm-5">
+                            <div id="ai-list" class="custom-radio">
+                                <label for="ai">사용할 AI</label>
+                                <select class="custom-select" id="ai" name="ai">
+                                    {% for group, items in ai_list.items() %}
+                                        {% for itemname in items %}
+                                            <option value="{{ itemname }}">{{ itemname }}</option>
+                                        {% endfor %}
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-sm-1"></div>
+                    </div>
+                    <div class="row">
+                        <div class="col-sm-4"></div>
+                        <div class="col-sm-4">
+                            <button class="btn btn-block btn-custom-purple" type="submit">생성 요청</button>
+                        </div>
+                        <div class="col-sm-4"></div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+
+
+
+
+    <script>
+        document.addEventListener("DOMContentLoaded", function(){
+            ////이미지 미리보기
+            document.getElementById("imageUpload").addEventListener("change", function (event) {
+                const file = event.target.files[0]; // 업로드한 파일 가져오기
+                const detectButton = document.getElementById("detectButton");
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = function (e) {
+                        const preview = document.getElementById("imagePreview");
+                        preview.src = e.target.result; // 미리보기 이미지 설정
+                        preview.style.display = "block"; // 이미지 보이게 설정
+                        detectButton.style.display = "block";
+                    };
+                    reader.readAsDataURL(file); // 파일을 DataURL로 변환하여 미리보기
+                } else {
+                    detectButton.style.display = "none";
+                }
+            });
+
+            ////객체탐지 요청하기
+            document.getElementById("object_detect").addEventListener("submit", async function (event) {
+                event.preventDefault();
+                const fileInput = document.getElementById("imageUpload");
+                const file = fileInput.files[0]; // 업로드한 파일 가져오기
+                if (!fileInput.files.length) {
+                    alert("파일을 선택하세요.");
+                    return;
+                }
+
+                const formData = new FormData();
+                formData.append("image", fileInput.files[0]);
+
+                const yoloDetectFormRequestURL = "{{ request.url_for('object_detect_request') }}"
+                const response = await fetch(yoloDetectFormRequestURL, {
+                    method: "POST",
+                    body: formData
+                });
+
+                const result = await response.json();
+                console.log("서버 응답:", result);
+
+                // 서버에서 받은 list 데이터를 기반으로 radio 버튼 생성
+                if (result.detected === true){
+                    generateRadioButtons(result.data);
+                } else if (result.result === true){ //통신에 성공하고 객체 탐지에 실패한 경우
+                    alert("객체 탐지에 실패했습니다. 객체를 직접 입력합니다.");
+                    generateInputText(result.data);
+                }
+                document.getElementById("generateAI_area").style = "display: block;";
+            });
+
+            function generateRadioButtons(data) {
+                const container = document.getElementById("detected-list");
+                container.innerHTML = "";  // 기존 내용 초기화
+
+                data.forEach((detected, index) => {
+                    const label = document.createElement("div");
+                    label.classList="row"
+                    label.innerHTML = `
+                        <label>
+                            <input type="radio" id="id_${detected.filename}" name="name" value="${detected.name}" data-filename="${detected.filename}" required ${index === 0 ? "checked" : ""}>
+                        ${detected.name}
+                        </label>
+                    `;
+                    container.appendChild(label);
+                })
+            }
+
+            function generateInputText(data){
+                const container = document.getElementById("detected-list");
+                container.innerHTML = ""; //기존 내용 초기화
+                const label = document.createElement("label");
+                label.innerHTML = `객체 직접 입력`;
+                
+                const inputbox = document.createElement("input");
+                inputbox.setAttribute("type", "text");
+                inputbox.setAttribute("name", "name");
+                inputbox.setAttribute("data-filename", data[0].filename);
+                container.appendChild(label);
+                container.appendChild(inputbox);
+            }
+
+
+            //submit 시 새로고침 방지
+            document.getElementById("ImageSelectedForm").addEventListener("submit", async function (event) {
+                event.preventDefault();
+                const selectedObject = document.querySelector('input[name="name"]:checked');
+                const selectedAI = document.getElementById('ai')
+                
+                const writedObject = document.querySelector('input[name="name"]')
+                if (!selectedObject && !writedObject) {
+
+                    alert("객체를 선택하세요.");
+                    return;
+                }
+
+                
+
+                const requestData = {
+                    "selected_object":selectedObject ? selectedObject.value : writedObject.value,
+                    "img": selectedObject? selectedObject.getAttribute("data-filename") : writedObject.getAttribute("data-filename"),
+                    "ai": selectedAI.value
+                }
+                // FastAPI 서버에 선택한 객체 정보 전송
+                const createProfileRequestURL =  "{{ request.url_for('profile_create_request') }}"
+                const response = await fetch(createProfileRequestURL, {
+                    method: "POST",
+                    headers:{
+                        "Content-Type": "application/json"
+                    },
+                    body:JSON.stringify(requestData)
+                });
+
+                const result = await response.json();
+                console.log("선택한 객체:", result);
+                if (selectedObject){
+                    alert(`선택한 객체 ${selectedObject.value} 로 AI가 생성중입니다...`);
+                } else if (writedObject){
+                    alert(`입력한 객체 ${writedObject.value} 로 AI가 생성중입니다...`);
+                }
+            });
+        })
+
+    </script>
+{% endblock %}

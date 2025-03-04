@@ -1,7 +1,7 @@
 import os
 import json
 import time
-import re 
+import re
 from datetime import datetime
 
 from langchain.prompts import PromptTemplate
@@ -25,13 +25,7 @@ class DebateMemoryWrapper:
     def save_message(self, speaker: str, message: str, round_number: int = None):
         if round_number is None:
             round_number = self.current_round
-        # timestamp를 추가
-        entry = {
-            "round": round_number,
-            "speaker": speaker,
-            "message": message,
-            "timestamp": datetime.now()  # 현재 시간을 기록
-        }
+        entry = {"timestamp": datetime.now(), "round": round_number, "speaker": speaker, "message": message}
         self.custom_history.append(entry)
         formatted = f"[Round {round_number}] {speaker}: {message}"
         sys_msg = SystemMessage(content=f"{speaker} 역할")
@@ -43,7 +37,7 @@ class DebateMemoryWrapper:
         return self.custom_history
 
     def load_by_speaker(self, speaker: str):
-        return [msg for msg in self.custom_history if msg["speaker"] == speaker]
+        return [msg for msg in self.custom_history if msg["speaker"].lower() == speaker.lower()]
 
     def increment_round(self):
         self.current_round += 1
@@ -59,12 +53,15 @@ class Debate_3(Progress):
     외부에서 주입되는 에이전트:
       - participant["pos"]: 찬성측 토론 에이전트
       - participant["neg"]: 반대측 토론 에이전트
-      - participant["judge"]: 심판 에이전트 (최종 평가)
+      - participant["judge"]: 최종 판결을 내리는 토론 심판 에이전트
+      - participant["judge_1"]: 논리 평가를 담당하는 심판 에이전트
+      - participant["judge_2"]: 반론 평가를 담당하는 심판 에이전트
+      - participant["judge_3"]: 설득력 평가를 담당하는 심판 에이전트
       - participant["progress_agent"]: 토론 진행 안내 메시지 생성 에이전트
       - participant["next_speaker_agent"]: 다음 발언자 결정 에이전트
 
     각 에이전트는 ai_instance라는 속성을 가지며, generate_text(user_prompt, max_tokens, temperature)를 제공해야 합니다.
-    Progress의 progress()는 dict를, evaluate()는 최종 메시지(str)를 반환하며,
+    Progress의 progress()는 dict를, evaluate()는 최종 평가 결과(dict)를 반환하며,
     data JSON에는 debate_log와 status["step"]이 업데이트되고, topic은 data["topic"]에서 가져옵니다.
     """
     def __init__(self, participant: dict, generate_text_config: dict, data: dict = None):
@@ -74,7 +71,7 @@ class Debate_3(Progress):
 
         if data is None:
             self.data = {
-                "type":"debate_3",
+                "type": "debate_3",
                 "participants": {position : {"id"   : data.id,
                                  "name" : data.name,
                                   "img" : data.img,
@@ -100,7 +97,7 @@ class Debate_3(Progress):
         self.topic = self.data.get("topic", "")
 
         response_schemas = [
-            ResponseSchema(name="speaker", description="응답한 화자 (pos, neg, Judge 등)"),
+            ResponseSchema(name="speaker", description="응답한 화자 (Pos, Neg, Judge 등)"),
             ResponseSchema(name="message", description="생성된 메시지 내용")
         ]
         self.output_parser = StructuredOutputParser.from_response_schemas(response_schemas)
@@ -160,29 +157,6 @@ class Debate_3(Progress):
             """
         )
 
-        self.evaluator_prompt = PromptTemplate(
-            input_variables=["history"],
-            template="""
-            [SYSTEM: 당신은 토론 심판입니다. 역할은 라운드 평가를 진행하는 것입니다.]
-            다음은 이번 라운드의 토론 발언 기록입니다:
-            {history}
-
-            각 참가자(찬성: "pos", 반대: "neg")의 발언을 아래 기준으로 평가해 주세요.
-            1. 논리력 (0~10점)
-            2. 신선도 (0~10점)
-            3. 사실 기반 (0~10점)
-
-            평가 결과는 반드시 JSON 형식으로 반환하세요. 예시:
-            {{
-                "evaluations": [
-                    {{"participant": "pos", "logic_score": 8, "freshness_score": 6, "factuality_score": 9, "warning": ""}},
-                    {{"participant": "neg", "logic_score": 7, "freshness_score": 5, "factuality_score": 8, "warning": "반복적입니다."}}
-                ],
-                "message": "라운드 평가 결과입니다."
-            }}
-            """
-        )
-
         self.judge_prompt = PromptTemplate(
             input_variables=["topic", "pos_statements", "neg_statements"],
             template="""
@@ -190,21 +164,85 @@ class Debate_3(Progress):
             주제: "{topic}"
             아래는 찬성측과 반대측의 발언 내역입니다.
             
-            **찬성측 (pos):**
+            **찬성측 (Pos):**
             {pos_statements}
             
-            **반대측 (neg):**
+            **반대측 (Neg):**
             {neg_statements}
+            
             
             이제 어느 쪽이 더 설득력 있는지, 그리고 그 이유는 무엇인지 상세하게 서술해 주세요.
             반드시 JSON 형식으로 응답하세요:
             ```json
             {{
                "speaker": "Judge",
-               "message": "최종 판결: [pos/neg]가 더 설득력이 있습니다. 이유: ..."
+               "message": "최종 판결: [Pos/Neg]가 더 설득력이 있습니다. 이유: ..."
             }}
             ```
             """
+        )
+
+        # 추가된 심판 프롬프트: 논리 평가 (judge_1)
+        self.judge_logical_prompt = PromptTemplate(
+            input_variables=["topic", "pos_statements", "neg_statements"],
+            template="""
+            [SYSTEM: 당신은 논리 분석 전문가입니다. 아래의 찬성측과 반대측 발언을 비교하여 각 측의 논리적 일관성과 타당성을 평가하세요.
+            주제: "{topic}"
+            **찬성측 (Pos):**
+            {pos_statements}
+            **반대측 (Neg):**
+            {neg_statements}
+
+            각 측의 논리적 강점을 100점 만점으로 평가하여, 아래 JSON 형식으로 응답하세요:
+            ```json
+            {{
+                "logicality_pos": <점수>,
+                "logicality_neg": <점수>,
+                "message": "논리 평가 완료"
+            }}
+            ```"""
+        )
+
+        # 추가된 심판 프롬프트: 반론 평가 (judge_2)
+        self.judge_rebuttal_prompt = PromptTemplate(
+            input_variables=["topic", "pos_rebuttal", "neg_rebuttal"],
+            template="""
+            [SYSTEM: 당신은 반론 분석 전문가입니다. 아래의 찬성측과 반대측 반론을 비교하여 각 측의 반론 효과성을 평가하세요.
+            주제: "{topic}"
+            **찬성측 반론:**
+            {pos_rebuttal}
+            **반대측 반론:**
+            {neg_rebuttal}
+
+            각 측의 반론 효과성을 100점 만점으로 평가하여, 아래 JSON 형식으로 응답하세요:
+            ```json
+            {{
+                "rebuttal_pos": <점수>,
+                "rebuttal_neg": <점수>,
+                "message": "반론 평가 완료"
+            }}
+            ```"""
+        )
+
+        # 추가된 심판 프롬프트: 설득력 평가 (judge_3)
+        self.judge_persuasion_prompt = PromptTemplate(
+            input_variables=["topic", "pos_statements", "neg_statements"],
+            template="""
+            [SYSTEM: 당신은 설득력 평가 전문가입니다. 아래의 찬성측과 반대측 발언을 비교하여 각 측의 설득력을 평가하세요.
+            주제: "{topic}"
+            **찬성측 (Pos):**
+            {pos_statements}, {pos_rebuttal}
+            **반대측 (Neg):**
+            {neg_statements}, {neg_rebuttal}
+
+            각 측의 설득력을 100점 만점으로 평가하여, 아래 JSON 형식으로 응답하세요:
+            ```json
+            {{
+                "persuasion_pos": <점수>,
+                "persuasion_neg": <점수>,
+                "message": "설득력 평가 완료"
+            }}
+            ```"""
         )
 
         self.progress_round1_prompt = PromptTemplate(
@@ -250,7 +288,7 @@ class Debate_3(Progress):
 
     def next_speaker(self, is_final: bool = False) -> dict:
         history_str = self.memory_manager.format_history()
-        candidates = "['Judge']" if is_final else "['pos', 'neg']"
+        candidates = "['Judge']" if is_final else "['Pos', 'Neg']"
         prompt = self.next_speaker_candidate_prompt.format(history=history_str, candidates=candidates)
         result_text = self.generate_text("next_speaker_agent", prompt)
         try:
@@ -260,7 +298,7 @@ class Debate_3(Progress):
             if is_final and next_speaker != "Judge":
                 next_speaker = "Judge"
                 message = "최종 판결을 위해 Judge가 선택되었습니다."
-            elif not is_final and next_speaker not in ["pos", "neg"]:
+            elif not is_final and next_speaker.lower() not in ["pos", "neg"]:
                 next_speaker = "neg"
         except OutputParserException:
             next_speaker = "neg" if not is_final else "Judge"
@@ -272,7 +310,7 @@ class Debate_3(Progress):
         if round_number == 1:
             prompt = self.claim_prompt.format(topic=self.data["topic"], position=speaker)
         else:
-            opponent = "neg" if speaker == "pos" else "pos"
+            opponent = "neg" if speaker.lower() == "pos" else "pos"
             opp_msgs = self.memory_manager.load_by_speaker(opponent)
             opponent_statements = "\n".join([f"[Round {msg['round']}] {msg['message']}" for msg in opp_msgs])
             prompt = self.argument_prompt.format(topic=self.data["topic"], position=speaker, opponent_statements=opponent_statements)
@@ -285,27 +323,83 @@ class Debate_3(Progress):
         self.memory_manager.save_message(speaker, message)
         return {"speaker": speaker, "message": message}
 
-    def evaluate(self, _) -> str:
+    def evaluate(self, _) -> dict:
+        # 모든 발언 불러오기
         pos_msgs = self.memory_manager.load_by_speaker("pos")
         neg_msgs = self.memory_manager.load_by_speaker("neg")
         pos_statements = "\n".join([f"[Round {msg['round']}] {msg['message']}" for msg in pos_msgs])
         neg_statements = "\n".join([f"[Round {msg['round']}] {msg['message']}" for msg in neg_msgs])
-        prompt = self.judge_prompt.format(topic=self.data["topic"], pos_statements=pos_statements, neg_statements=neg_statements)
-        result_text = self.generate_text("judge", prompt)
+
+        # 1라운드의 주장 메시지를 제외한 반론 메시지 추출 (round > 1)
+        pos_rebuttals = [msg for msg in pos_msgs if msg["round"] > 1]
+        neg_rebuttals = [msg for msg in neg_msgs if msg["round"] > 1]
+        pos_rebuttal = "\n".join([f"[Round {msg['round']}] {msg['message']}" for msg in pos_rebuttals])
+        neg_rebuttal = "\n".join([f"[Round {msg['round']}] {msg['message']}" for msg in neg_rebuttals])
+
+        # 논리 평가 (judge_1 사용)
+        prompt_logical = self.judge_logical_prompt.format(topic=self.data["topic"], pos_statements=pos_statements, neg_statements=neg_statements)
+        result_logical_text = self.generate_text("judge_1", prompt_logical)
         try:
-            parsed = self.output_parser.parse(result_text)
-            message = parsed["message"]
-        except OutputParserException:
-            message = "최종 평가 응답 파싱 실패"
-        self.memory_manager.save_message("Judge", message)
+            result_logical = json.loads(result_logical_text)
+        except Exception:
+            result_logical = {"logicality_pos": 0, "logicality_neg": 0, "message": "논리 평가 파싱 실패"}
+
+        # 반론 평가 (judge_2 사용)
+        prompt_rebuttal = self.judge_rebuttal_prompt.format(topic=self.data["topic"], pos_rebuttal=pos_rebuttal, neg_rebuttal=neg_rebuttal)
+        result_rebuttal_text = self.generate_text("judge_2", prompt_rebuttal)
+        try:
+            result_rebuttal = json.loads(result_rebuttal_text)
+        except Exception:
+            result_rebuttal = {"rebuttal_pos": 0, "rebuttal_neg": 0, "message": "반론 평가 파싱 실패"}
+
+        # 설득력 평가 (judge_3 사용)
+        prompt_persuasion = self.judge_persuasion_prompt.format(topic=self.data["topic"], pos_statements=pos_statements, neg_statements=neg_statements)
+        result_persuasion_text = self.generate_text("judge_3", prompt_persuasion)
+        try:
+            result_persuasion = json.loads(result_persuasion_text)
+        except Exception:
+            result_persuasion = {"persuasion_pos": 0, "persuasion_neg": 0, "message": "설득력 평가 파싱 실패"}
+
+        logicality_pos = int(result_logical.get("logicality_pos", 0))
+        logicality_neg = int(result_logical.get("logicality_neg", 0))
+        rebuttal_pos = int(result_rebuttal.get("rebuttal_pos", 0))
+        rebuttal_neg = int(result_rebuttal.get("rebuttal_neg", 0))
+        persuasion_pos = int(result_persuasion.get("persuasion_pos", 0))
+        persuasion_neg = int(result_persuasion.get("persuasion_neg", 0))
+
+        # 가중치 적용하여 최종 점수 계산
+        match_pos = logicality_pos * 0.4 + rebuttal_pos * 0.35 + persuasion_pos * 0.25
+        match_neg = logicality_neg * 0.4 + rebuttal_neg * 0.35 + persuasion_neg * 0.25
+
+        if match_pos > match_neg:
+            self.data["result"] = "positive"
+        elif match_pos < match_neg:
+            self.data["result"] = "negative"
+        else:
+            self.data["result"] = "draw"
+
+        self.memory_manager.save_message("Judge", f"논리 평가 결과: {result_logical.get('message', '')}")
+        self.memory_manager.save_message("Judge", f"반론 평가 결과: {result_rebuttal.get('message', '')}")
+        self.memory_manager.save_message("Judge", f"설득력 평가 결과: {result_persuasion.get('message', '')}")
         self.data["debate_log"] = self.memory_manager.load_all()
-        return message
+
+        return {
+            "result": self.data["result"],
+            "logicality_pos": logicality_pos,
+            "logicality_neg": logicality_neg,
+            "rebuttal_pos": rebuttal_pos,
+            "rebuttal_neg": rebuttal_neg,
+            "persuasion_pos": persuasion_pos,
+            "persuasion_neg": persuasion_neg,
+            "match_pos": match_pos,
+            "match_neg": match_neg
+        }
 
     def progress(self) -> dict:
         debate = self.data
         result = {"timestamp": None, "speaker": "", "message": ""}
 
-        if debate["_id"] is None:
+        if debate.get("_id") is None:
             result["speaker"] = "SYSTEM"
             result["message"] = "유효하지 않은 토론입니다."
             result["timestamp"] = datetime.now()
@@ -320,7 +414,7 @@ class Debate_3(Progress):
         initial = self.next_speaker(is_final=False)
         self.memory_manager.save_message("Progress", f"초기 발언자: {initial['speaker']}")
         first_speaker = initial["speaker"]
-        second_speaker = "neg" if first_speaker == "pos" else "pos"
+        second_speaker = "neg" if first_speaker.lower() == "pos" else "pos"
         order = [first_speaker, second_speaker]
 
         round_number = 1
@@ -344,9 +438,9 @@ class Debate_3(Progress):
                 end = time.time()
                 duration = end - start
                 print(f"{turn['speaker']} : {turn['message']}")
-                if speaker == "pos":
+                if speaker.lower() == "pos":
                     pos_time_remaining -= duration
-                elif speaker == "neg":
+                elif speaker.lower() == "neg":
                     neg_time_remaining -= duration
             if pos_time_remaining <= 0 or neg_time_remaining <= 0:
                 final_spk = self.next_speaker(is_final=True)
@@ -358,9 +452,25 @@ class Debate_3(Progress):
             debate["status"]["step"] = self.memory_manager.current_round
 
         final_eval = self.evaluate({})
-        self.memory_manager.save_message("Judge", final_eval)
+        self.memory_manager.save_message("Judge", str(final_eval))
         debate["end_time"] = datetime.now()
         debate["debate_log"] = self.memory_manager.load_all()
         debate["status"]["type"] = "end"  # 종료 상태로 설정
-        result = {"timestamp": datetime.now(), "speaker": "Judge", "message": final_eval}
+        result = {"timestamp": datetime.now(), "speaker": "Judge", "message": str(final_eval)}
         return result
+
+    def summerizer(self):
+        prompt_summary = f"""
+        다음은 토론에 대한 전체 기록입니다. 이를 아래 형식으로 한글로 요약해 주세요.
+
+        "주제": [토론의 주요 주제를 간결하게 정리]  
+        "찬성 측 주장": [찬성 측의 핵심 주장 요약]  
+        "반대 측 주장": [반대 측의 핵심 주장 요약]  
+        "찬성 측 변론": [찬성 측이 반론에 대응한 내용]  
+        "반대 측 변론": [반대 측이 반론에 대응한 내용]  
+        "최종 판결": [토론의 결론 또는 심사 결과 요약]  
+
+        아래는 토론 기록입니다:
+        {self.data['debate_log']}
+        """
+        return self.generate_text("judge", prompt_summary)

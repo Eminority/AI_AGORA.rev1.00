@@ -1,0 +1,55 @@
+{% extends 'layout/body.html' %}
+
+{% block title %} AI Agora Profiles {% endblock %}
+{% block add_scriptsheet %}
+<script src="{{ url_for('static', path='js/link_progress_detail.js') }}"></script>
+{% endblock %}
+
+{% block content %}
+    <div class="content-container">
+        <h1>  </h1>
+        <div class="container-sm text-center p-3">
+            <div class="create-button" onclick="location.href='{{ request.url_for('progress_create_page') }}'">
+                    <h1>토론 생성하기</h1>
+            </div>
+        </div>
+    </div>
+   
+    <div class="progresses_container container-sm">
+        <div id="progress_list" class="">
+            {% for id, data in progress.items() %}
+                <div class="card">
+                    <div class="card-header" >
+                        <a class="card-link" data-toggle="collapse" href="#id_{{ id }}">
+                            {{ data.topic }}
+                        </a>
+                    </div>
+                    <div id="id_{{ id }}" class="collapse" data-parent="#progress_list">
+                        <div class="card-body">
+                            <div class="row">
+                                {% for position, participant in data.participants.items() %}
+                                    <div class="col-sm-6">
+                                        <h5>{{ position }}</h5>
+                                        <ul>
+                                            <li>{{ participant.name }}</li>
+                                            <li>AI : {{ participant.ai }}</li>
+                                            <li>속성 : {{ participant.object_attribute }}</li>
+                                        </ul>
+                                    </div>
+                                {% endfor %}
+                            </div>
+                            <div class="row">
+                                <div class="col-sm-2"></div>
+                                <div class="col-sm-8">
+                                    <button class="progress_detail btn btn-primary btn-block" data-progress-id="{{ id }}">보러가기</button>
+                                </div>
+                                <div class="col-sm-2"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    </div>
+    </div>
+{% endblock %}
