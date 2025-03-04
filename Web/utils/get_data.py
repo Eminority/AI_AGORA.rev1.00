@@ -120,7 +120,7 @@ class GetData():
                 speaker = progress["participants"].get(log["speaker"])
                 if speaker:
                     log["speaker"] = log["speaker"] + f" ({speaker['name']})"
-                log["message"] = format_to_bold(log["message"])
+                    log["message"] = format_to_bold(log["message"])
                 log["timestamp"] = format_datetime(str(log["timestamp"]))
         return progress
     

@@ -105,11 +105,12 @@ async def auto_progressing():
                 #progress가 종료되지 않았다면
                 if progressdata.get("status") and progressdata.get("status").get("type") != "end":
                     count += 1
+                    print(f">>>>>> {count}")
                     #계속 progress 진행하기
                     id = str(progressdata.get("_id", ""))
                     if id and id in progress_manager.progress_pool.keys():
-                        result = progress_manager.progress_pool[id].progress()
-                        print(f"====\nprogress step : {result.get('step')}\n{result['speaker']} 가 말했음")
+                        progress_manager.progress_pool[id].progress()
+                        # print(f"====\nprogress step : {result.get('step')}\n{result['speaker']} 가 말했음")
                         print(progress_manager.save(id))
                 await asyncio.sleep(1)
             # if count == 0 and (auto_progress_create_task is None or auto_progress_create_task.done()):

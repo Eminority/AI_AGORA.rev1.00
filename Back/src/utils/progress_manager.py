@@ -97,7 +97,8 @@ class ProgressManager:
         if progress:
             progress.data["topic"] = topic
             id = str(self.mongoDBConnection.insert_data("progress", progress.data))
-            progress.vectorstore = self.ready_to_progress_with_personality(topic, generated_participant)
+            # progress.vectorstore = self.ready_to_progress_with_personality(topic, generated_participant)
+            progress.vectorstore = self.ready_to_progress(topic)
             progress.data["_id"] = id
             self.progress_pool[id] = progress
             result["result"] = True
