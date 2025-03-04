@@ -119,4 +119,5 @@ if __name__ == "__main__":
             result = debate.progress()
             print()
             print(f"{result['speaker']} : {result['message']}")
+            progress_manager.save(str(debate.data["_id"]))
     ###############################임시로 실행하는 테스트 코드

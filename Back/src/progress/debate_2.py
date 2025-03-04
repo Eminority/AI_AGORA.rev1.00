@@ -26,20 +26,27 @@ class Debate_2(Progress):
             # debate 필드 초기화
             self.data = {
                 "type": "debate_2",
-                "participants": None,
+                "participants": {position : {"id"   : data.id,
+                                 "name" : data.name,
+                                  "img" : data.img,
+                                  "ai"  : data.ai_instance.model_name,
+                                  "object_attribute": data.object_attribute}
+                                  for position, data in participant.items()},
                 "topic": None,
                 "status": {
                     "type": None,  # "in_progress" 또는 "end" 등
                     "step": 0     # 1부터 11까지 단계
                 },
                 "debate_log": [],
-                "start_time": None,
-                "end_time": None,
-                "summary": {
-                    "summary_pos": None,
-                    "summary_neg": None,
-                    "summary_arguments": None,
-                    "summary_verdict": None
+                "score" : {
+                    "logicality_pos": 0,
+                    "logicality_neg": 0,
+                    "rebuttal_pos": 0,
+                    "rebuttal_neg": 0,
+                    "persuasion_pos": 0,
+                    "persuasion_neg": 0,
+                    "match_pos": 0,
+                    "match_neg": 0
                 },
                 "result": None
             }
@@ -97,8 +104,7 @@ class Debate_2(Progress):
 
                 **소개:**  
                 "'{self.data['topic']}'는 다양한 시각에서 논의되는 주제입니다. 찬성하는 측에서는 [찬성 측의 주요 주장]을 근거로 주장하며, 반대하는 측에서는 [반대 측의 주요 주장]을 내세웁니다. 이 논쟁은 주로 [토론에서 중요한 2~3가지 핵심 쟁점]을 중심으로 진행됩니다. 오늘 우리는 이 주제에 대한 양측의 입장을 깊이 탐구해보겠습니다."
-
-                **찬성 측의 발언 유도:**  
+                
                 "그럼 먼저, **찬성 측**의 의견을 들어보겠습니다. {self.data['topic']}에 대한 찬성 입장은 무엇이며, 이를 뒷받침하는 주요 근거와 증거는 무엇인가요?"
                 """
             
@@ -362,7 +368,8 @@ class Debate_2(Progress):
         elif step == 10:
             # 10. 판사가 판결 준비시간(1초) 부여
             result["speaker"] = "judge_1"
-            result["message"] = "토론이 이제 종료되었습니다. 최종 결정을 내리기 전에 모든 주장을 검토하는 시간을 가지겠습니다."            time.sleep(1)
+            result["message"] = "토론이 이제 종료되었습니다. 최종 결정을 내리기 전에 모든 주장을 검토하는 시간을 가지겠습니다."            
+            time.sleep(1)
 
         
         elif step == 11:
@@ -560,7 +567,7 @@ class Debate_2(Progress):
         else:
             self.data["result"] = "draw"
 
-        self.data["evaluate"] = {
+        self.data["score"] = {
             "logicality_pos": logicality_pos,
             "logicality_neg": logicality_neg,
             "rebuttal_pos": rebuttal_pos,
@@ -571,6 +578,6 @@ class Debate_2(Progress):
             "match_neg": match_neg
         }
 
-        self.data["summary"]
+        print(self.data["score"])
 
         return self.data["result"]

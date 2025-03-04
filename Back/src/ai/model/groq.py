@@ -51,12 +51,23 @@ class GroqAPI(AI_Instance):
             "temperature": temperature          # 온도 값
         }
 
+        url = "https://api.groq.com/openai/v1/chat/completions"
+
         try:
-            response = requests.post(json=data, headers=self.headers)
+            response = requests.post(url, json=data, headers=self.headers)
             if response.status_code == 200:
                 result = response.json()
-                # 응답 필드는 실제 API 스펙에 맞게 수정
-                return result.get("text", "응답 없음")
+                try:
+                    content = result["choices"][0]["message"]["content"]
+                    # 먼저, </think> 태그가 존재하면 그 뒤 부분을 사용
+                    if "</think>" in content:
+                        content = content.split("</think>")[-1].strip()
+                    # 그렇지 않고, <think>로 시작하면 해당 태그를 제거
+                    elif content.startswith("<think>"):
+                        content = content[len("<think>"):].strip()
+                    return content
+                except (KeyError, IndexError):
+                    return "응답 없음"
             else:
                 return f"API 에러: {response.status_code} - {response.text}"
         except Exception as e:
@@ -86,33 +97,33 @@ class GroqAPI(AI_Instance):
         else:
             full_prompt = f"Context: {context}\nUser: {user_prompt}"
 
-        # data = {
-        #     "model_name": self.model_name,
-        #     "prompt": full_prompt,
-        #     "max_tokens": max_tokens,
-        #     "temperature": temperature
-        # }
+        url = "https://api.groq.com/openai/v1/chat/completions"
 
-        # try:
-        #     response = requests.post(json=data, headers=self.headers)
-        #     if response.status_code == 200:
-        #         result = response.json()
-        #         return result.get("text", "답변 없음")
-        #     else:
-        #         return f"API 에러: {response.status_code} - {response.text}"
-        # except Exception as e:
-        #     return f"Error: {str(e)}"
-
-        result = self.groq_client.chat.completions.create(
-            messages=[
-                {
-                    "role":"user",
-                    "content": full_prompt
-                }
-            ],
-            model = self.model_name
-        )
-        return result.choices[0].message.content.split("</think>")[-1]
+        data = {
+            "model_name": self.model_name,          # 선택한 모델 ID
+            "prompt": full_prompt,              # 최종 프롬프트
+            "max_tokens": max_tokens,           # 생성할 최대 토큰 수
+            "temperature": temperature          # 온도 값
+        }
+        try:
+            response = requests.post(url, json=data, headers=self.headers)
+            if response.status_code == 200:
+                result = response.json()
+                try:
+                    content = result["choices"][0]["message"]["content"]
+                    # 먼저, </think> 태그가 존재하면 그 뒤 부분을 사용
+                    if "</think>" in content:
+                        content = content.split("</think>")[-1].strip()
+                    # 그렇지 않고, <think>로 시작하면 해당 태그를 제거
+                    elif content.startswith("<think>"):
+                        content = content[len("<think>"):].strip()
+                    return content
+                except (KeyError, IndexError):
+                    return "응답 없음"
+            else:
+                return f"API 에러: {response.status_code} - {response.text}"
+        except Exception as e:
+            return f"Error: {str(e)}"
 
     def close_connection(self):
         """

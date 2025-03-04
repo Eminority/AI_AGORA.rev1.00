@@ -91,8 +91,8 @@ class ProgressManager:
         """
         progress id를 받아 해당 아이디의 progress를 저장하는 함수
         """
-        pass
-
+        return self.mongoDBConnection.update_data("progress", self.progress_pool[progress_id].data)
+    
     def load(self):
         """
         load해서 self.progress_pool에 등록하는 함수
