@@ -28,7 +28,7 @@
                 </thead>
                 <tbody>
                     {% for id, data in profiles.items() %}
-                        <tr data-profile-id="{{ id }}">
+                        <tr class="ai_profile" data-profile-id="{{ id }}">
                             <td class="align-middle">
                                 <img src="{{ url_for('get_image', filename=data.img) }}" style="width: 50px; height: auto;">
                             </td>

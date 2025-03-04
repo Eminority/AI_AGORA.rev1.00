@@ -61,6 +61,7 @@ class GetData():
             profile = self.mongodb_connection.select_data_from_id("object",id)
             profile["_id"] = id
             img_id = profile.get("img")
+            profile["stats"] = self.get_stats_by_id(self.mongodb_connection.get_collection("progress"), id)
             if img_id:
                 img_filename = self.img_id_to_filename(str(img_id))
                 profile["img"] = img_filename
@@ -119,7 +120,7 @@ class GetData():
             for log in progress.get("debate_log"):
                 speaker = progress["participants"].get(log["speaker"])
                 if speaker:
-                    log["speaker"] = log["speaker"] + f" ({speaker['name']})"
+                    log["name"] = speaker['name']
                 log["message"] = format_to_bold(log["message"])
                 log["timestamp"] = format_datetime(str(log["timestamp"]))
         return progress

@@ -50,6 +50,8 @@ class ProgressManager:
         # 판사 3명인 토론 타입
         elif progress_type == "debate_2":
             # self.chect_topic_for_debate(topic) 생략
+            if not participant.get("judge"):
+                participant["judge"] = {"ai":"GEMINI", "name":"판사"}
             if not participant.get("judge_1"):
                 participant["judge_1"] = {"ai":"GEMINI", "name":"judge_1"}
             if not participant.get("judge_2"):
@@ -97,7 +99,8 @@ class ProgressManager:
         if progress:
             progress.data["topic"] = topic
             id = str(self.mongoDBConnection.insert_data("progress", progress.data))
-            progress.vectorstore = self.ready_to_progress_with_personality(topic, generated_participant)
+            # progress.vectorstore = self.ready_to_progress_with_personality(topic, generated_participant)
+            progress.vectorstore = self.ready_to_progress(topic)
             progress.data["_id"] = id
             self.progress_pool[id] = progress
             result["result"] = True
@@ -115,10 +118,8 @@ class ProgressManager:
     def ready_to_progress_with_personality(self, topic, participants):
         articles = []
         articles.extend(self.web_scrapper.get_articles(topic=topic))
-        for participant in participants.values():
-            print(participant.name)
-            articles.extend(self.web_scrapper.get_articles(participant.name))
-        print(articles)
+        articles.extend(self.web_scrapper.get_articles(participants["pos"].name))
+        articles.extend(self.web_scrapper.get_articles(participants["neg"].name))
         return self.vectorstore_handler.vectorstoring(articles)
     
     def check_topic_for_debate(self, topic:str) -> bool:
