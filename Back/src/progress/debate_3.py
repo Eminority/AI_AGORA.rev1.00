@@ -243,7 +243,7 @@ class Debate(Progress):
         self.progress_round1_prompt = PromptTemplate(
             input_variables=["topic"],
             template="""
-            [SYSTEM: 당신은 토론 진행자입니다. 역할은 라운드 안내 및 다음 발언자 소개입니다. 참가자로서 발언하지 마십시오. 참가자는 {candidates}입니다.]
+            [SYSTEM: 당신은 토론 진행자입니다. 역할은 라운드 안내 및 다음 발언자 소개입니다. 참가자로서 발언하지 마십시오. 참가자는 찬성, 반대 두 명 입니다.]
             Round 1 시작:
             주제: "{topic}"
             각 참가자께서는 자신의 주장을 처음으로 제시해 주세요.
