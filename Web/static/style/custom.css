@@ -1,4 +1,4 @@
-.mainbutton{
+.mainbutton {
     background-color: antiquewhite;
     border-width: 3px;
     border-color: blanchedalmond;
@@ -16,25 +16,27 @@
     transform: scale(1.1);
 }
 
-html{
+html {
     background: linear-gradient(to bottom, #ACA6C8, #DECBD0);
-    background-attachment: fixed; /*스크롤해도 배경 고정*/
+    background-attachment: fixed;
+    /*스크롤해도 배경 고정*/
 }
 
 body {
-    background: transparent; /* body의 배경을 투명하게 설정 */
+    background: transparent;
+    /* body의 배경을 투명하게 설정 */
 }
 
 
-.progress_request_box{
+.progress_request_box {
     border-radius: 25px;
     border: 1px solid #ddd;
     background-color: #CCC6D8;
 }
 
 .progress_request_input,
-.progress_request_input:focus{
-    font-size:30px;
+.progress_request_input:focus {
+    font-size: 30px;
     background-color: transparent;
     border: none;
     outline: none;
@@ -42,22 +44,22 @@ body {
 }
 
 .progress_request_box select,
-.progress_request_box select:focus{
+.progress_request_box select:focus {
     background-color: #CDCCDD;
     border: 1px solid #DDD;
     outline: none;
     box-shadow: none;
 }
 
-.bg-custom-nav{
+.bg-custom-nav {
     background-color: #6B5B95 !important;
 }
 
-.bg-custom-nav a{
+.bg-custom-nav a {
     color: #F8E8EE;
 }
 
-.create-button{
+.create-button {
     width: 100%;
     height: 150px;
     display: flex;
@@ -69,3 +71,40 @@ body {
     cursor: pointer;
 }
 
+.object-detect-upload {
+    width: 100%;
+    height: 50px;
+    font-size: 25px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: #7f71a1;
+    color: #FFFFFF;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+.imagePreview {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.btn-custom-purple,
+.btn-custom-purple:hover,
+.btn-custom-purple:disabled{
+    color:#FFFFFF;
+    background-color: #7f71a1;
+    border-color: #7f71a1;
+}
+.btn-custom-purple:focus{
+    color:#FFFFFF;
+    background-color: #7f71a1;
+    border-color: #7f71a1;
+    box-shadow: 0 0 0 .2rem #635485;
+}
+#generateAI_area{
+    border-radius: 25px;
+    border: 1px solid #ddd;
+    background-color: #CCC6D8;
+}

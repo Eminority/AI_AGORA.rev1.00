@@ -7,11 +7,10 @@
 
 {% block content %}
     <div class="content-container">
-        <h1>  </h1>
-        <div class="jumbotron text-center">
-            <a href="{{ request.url_for('profile_create_page') }}">
-                <h1>AI 생성하기</h1>
-            </a>
+        <div class="container-sm text-center p-3">
+            <div class="create-button" onclick="location.href='{{ request.url_for('profile_create_page') }}'">
+                    <h1>프로필 생성하기</h1>
+            </div>
         </div>
     </div>
     
