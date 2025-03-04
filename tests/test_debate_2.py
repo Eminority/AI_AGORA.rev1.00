@@ -5,7 +5,7 @@ from pathlib import Path
 project_root = Path(__file__).resolve().parent.parent
 sys.path.append(str(project_root))
 
-
+from Back.src.utils.profile_manager import ProfileManager
 
 import os
 import yaml
@@ -121,3 +121,32 @@ if __name__ == "__main__":
             print(f"{result['speaker']} : {result['message']}")
             progress_manager.save(str(debate.data["_id"]))
     ###############################임시로 실행하는 테스트 코드
+
+    collection = mongodb_connection.get_collection("progress")  # "progress" 컬렉션 예시
+    # ProfileManager 객체 생성
+    profile_manager = ProfileManager(db=mongodb_connection, detect_persona=detect_persona)
+
+    # target_id 설정
+    target_id = "67b5486164b7152a1538359b"
+
+    # get_stats_by_id 메서드 호출 (ProfileManager 객체를 통해 호출)
+    stats_result = profile_manager.get_stats_by_id(collection, target_id)
+
+    # 결과 출력
+    if stats_result:
+        print("====== Extended Stats and Scores ======")
+        print(f"Name: {stats_result['target_name']}")
+        print(f"ID: {stats_result['target_id']}")
+        print(f"토론 참여 횟수 (total_debates): {stats_result['total_debates']}")
+        print(f"승률 (winning_rate): {stats_result['winning_rate']}%")
+        print(f"승리 횟수 (wins): {stats_result['wins']}")
+        print(f"패배 횟수 (losses): {stats_result['losses']}")
+        print(f"평균 Match: {stats_result['avg_match']}")
+        print(f"평균 Logicality: {stats_result['avg_logicality']}")
+        print(f"평균 Rebuttal: {stats_result['avg_rebuttal']}")
+        print(f"평균 Persuasion: {stats_result['avg_persuasion']}")
+    else:
+        print("통계 정보를 가져오는 데 실패했습니다.")
+
+    # 연결 종료
+    mongodb_connection.close_connection()
