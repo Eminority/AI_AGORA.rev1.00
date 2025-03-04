@@ -6,41 +6,34 @@
 
 {% block content %}
     <div class="">
-        <div class="container progress_request_box">
+        <div class="container-sm">
             <form id="progressForm" method="post">
                 
                 <div class="row">
-                    <label for="topic"></label>
-                    <input class="form-control progress_request_input" type="text" id="topic" name="topic" placeholder="주제 입력">
-                </div>
-                <div class="row">
-                    <div class="col-sm-4">
+                    <div class="col-sm-2"> <!-- 빈칸 --> </div>
+                    <div class="col-sm-8">
                         <label for="generate_type">대화 생성 방식</label>
                         <select id="generate_type" name="type" class="custom-select">
-                            <option value="auto" selected>참가자 자동 전체 입력</option>
+                            <option value="auto" selected>참가자 전체 입력</option>
                             <option value="select-participant">참가자 선택</option>
                         </select>
                     </div>
-                    <div class="col-sm-4 select-others">
-                        <label for="pos_id">찬성 측 AI:</label>
-                        <select id="pos_id" name="pos_id" class="custom-select">  
-                            {% for id, data in profiles.items() %}
-                                <option value="{{ data._id }}"> {{ data.name }} - {{ data.ai }} </option>
-                            {% endfor %}
-                        </select>
-                    </div>
-                    <div class="col-sm-4 select-others">
-                        <label for="neg_id">반대 측 AI:</label>
-                        <select id="neg_id" name="neg_id" class="custom-select">  
-                            {% for id, data in profiles.items() %}
-                                <option value="{{ data._id }}"> {{ data.name }} - {{ data.ai }} </option>
-                            {% endfor %}
-                        </select>
-                    </div>
+                    <div class="col-sm-2"> <!-- 빈칸 --> </div>
                 </div>
-                <div id= "participants" class="select-others row">
-                    <div class="col-sm-4">
-                        <div class="select-others">
+                
+                <div class="row">
+                    <div class="col-sm-2"></div>
+                    <div class="form-group col-sm-8">
+                        <label for="topic"></label>
+                        <input class="form-control" type="text" id="topic" name="topic" placeholder="주제 입력">
+                    </div>
+                    <div class="col-sm-2"></div>
+                </div>
+
+                <div class="select-others">
+                    <div class="row">
+                        <div class="col-sm-2"> <!-- 빈칸 --> </div>
+                        <div class="col-sm-8">
                             <label for="progress_type">세션 형태</label>
                             <select id="progress_type" class="custom-select" name="type">
                                 <option value="debate">기본 토론</option>
@@ -48,23 +41,49 @@
                                 <option value="debate_3">토론 - 진행자 추가</option>
                             </select>
                         </div>
+                        <div class="col-sm-2"> <!-- 빈칸 --> </div>
                     </div>
-                    <div class="col-sm-4"></div>
-                    <div class="col-sm-4"></div>
+                    
+                    <div class="row">
+                        <div class="col-sm-2"><!-- 빈칸 --></div>
+                        <div class="col-sm-4">
+                            <label for="pos_id">찬성 측 AI:</label>
+                            <select id="pos_id" name="pos_id" class="custom-select">  
+                                {% for id, data in profiles.items() %}
+                                    <option value="{{ data._id }}"> {{ data.name }} - {{ data.ai }} </option>
+                                {% endfor %}
+                            </select>
+                            
+                        </div>
+                        <div class="col-sm-4">
+                            <label for="neg_id">반대 측 AI:</label>
+                            <select id="neg_id" name="neg_id" class="custom-select">  
+                                {% for id, data in profiles.items() %}
+                                    <option value="{{ data._id }}"> {{ data.name }} - {{ data.ai }} </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-sm-2"><!-- 빈칸 --></div>
+                    </div>
                 </div>
+               
                 <div class="row p-3">
-                    <div class="col-sm-9"><!-- 빈칸 --></div>
-                    <div class="col-sm-3">
+                    <div class="col-sm-3"><!-- 빈칸 --></div>
+                    <div class="col-sm-6">
                         <button class="btn btn-primary btn-block shadow" type="submit">시작하기</button>
                     </div>
+                    <div class="col-sm-3"><!-- 빈칸 --></div>
                 </div>
             </form>
             <hr/>
-        </div>
-        <div class="container p-3">
-                <button class="btn btn-primary shadow" type="button"
-                    onclick='location.href="/progress"'>목록으로 돌아가기</button>
-            <div class="col-sm-3"><!-- 빈칸 --></div>
+            <div class="row p-3">
+                <div class="col-sm-3"><!-- 빈칸 --></div>
+                <div class="col-sm-6">
+                    <button class="btn btn-primary btn-block shadow" type="button"
+                        onclick='location.href="/progress"'>목록으로 돌아가기</button>
+                </div>
+                <div class="col-sm-3"><!-- 빈칸 --></div>
+            </div>
         </div>
     </div>
 
@@ -75,19 +94,14 @@
     <script>
         document.addEventListener("DOMContentLoaded", function () {
             const generateType = document.getElementById("generate_type");
-            const selectOthers = document.querySelectorAll(".select-others");
-            const participants_selector = document.getElementById("participants")
-            function toggleSelectOthers() {
-                selectOthers.forEach(element => {
-                    if (generateType.value === "auto") {
-                        element.style.display = "none";
-                        participants_selector.classList = "select-others row";
+            const selectOthers = document.querySelector(".select-others");
 
-                    } else if (generateType.value === "select-participant") {
-                        element.style.display = "block";
-                        participants_selector.classList = "select-others row d-flex justify-content-center";
-                    }
-                });
+            function toggleSelectOthers() {
+                if (generateType.value === "auto") {
+                    selectOthers.style.display = "none";
+                } else if (generateType.value === "select-participant"){
+                    selectOthers.style.display = "block";
+                }
             }
 
             // 초기 상태 설정

@@ -132,14 +132,20 @@ def format_to_bold(text:str) -> str:
         text += "**"  # 강제로 닫는 태그 추가
     return re.sub(r'\*\*(.*?)\*\*', r'<strong>\1</strong>', text)
 
-def format_datetime(timestamp:str)-> str:
-    """ 년-월-일T시:분:초.밀리초 -> 년-월-일 시:분:초 로 변환"""
+def format_datetime(timestamp: str) -> str:
+    """ 년-월-일 시:분:초.밀리초 또는 년-월-일T시:분:초.밀리초Z 형식을 변환 """
     try:
-        # 소수점(밀리초) 있는 경우 처리
-        if "." in timestamp:
-            dt = datetime.strptime(timestamp, "%Y-%m-%dT%H:%M:%S.%fZ")
+        # ISO 형식인지 확인 (T 포함 여부)
+        if "T" in timestamp:
+            if "." in timestamp:
+                dt = datetime.strptime(timestamp, "%Y-%m-%dT%H:%M:%S.%fZ")
+            else:
+                dt = datetime.strptime(timestamp, "%Y-%m-%dT%H:%M:%SZ")
         else:
-            dt = datetime.strptime(timestamp, "%Y-%m-%dT%H:%M:%SZ")
+            if "." in timestamp:
+                dt = datetime.strptime(timestamp, "%Y-%m-%d %H:%M:%S.%f")
+            else:
+                dt = datetime.strptime(timestamp, "%Y-%m-%d %H:%M:%S")
 
         return dt.strftime("%Y-%m-%d %H:%M:%S")  # 밀리초 제거 후 변환
     except ValueError:

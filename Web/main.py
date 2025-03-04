@@ -68,4 +68,4 @@ app.include_router(progress.router)
 
 # 실행 코드
 # python -m uvicorn main:app --host 0.0.0.0 --port 8001 --reload
-# .env 안에 DEBATE_SERVER="http://127.0.0.1:8000" 넣기기
+# .env 안에 PROGRESS_SERVER="http://127.0.0.1:8000" 넣기기
