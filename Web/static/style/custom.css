@@ -69,6 +69,7 @@ body {
     color: #FFFFFF;
     border-radius: 12px;
     cursor: pointer;
+    border: 2px solid #2e245c;
 }
 
 .object-detect-upload {
@@ -122,4 +123,9 @@ body {
 
 #progress_list a{
     color:#FFFFFF;
+}
+
+.btn-custom-black-transparant{
+    background-color: rgba(0,0,0,0.15);
+    border: 1px solid #000;
 }
