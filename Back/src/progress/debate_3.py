@@ -576,7 +576,7 @@ class Debate_3(Progress):
         neg_time_remaining = 20.0
 
         initial = self.next_speaker(is_final=False)
-        self.memory_manager.save_message("Progress", f"초기 발언자: {initial['speaker']}")
+        # self.memory_manager.save_message("Progress", f"초기 발언자: {initial['speaker']}")
         first_speaker = initial["speaker"]
         second_speaker = "neg" if first_speaker == "pos" else "pos"
         order = [first_speaker, second_speaker]
@@ -591,7 +591,8 @@ class Debate_3(Progress):
                 prompt = self.progress_round_prompt.format(pos_time=pos_time_remaining, neg_time=neg_time_remaining)
                 prog_text = self.generate_text("progress_agent", prompt)
             print(prog_text)
-            self.memory_manager.save_message("Progress", prog_text)
+
+            self.memory_manager.save_message("judge", prog_text)
 
             for speaker in order:
                 start = time.time()
@@ -605,17 +606,18 @@ class Debate_3(Progress):
                     neg_time_remaining -= duration
             if pos_time_remaining <= 0 or neg_time_remaining <= 0:
                 final_spk = self.next_speaker(is_final=True)
-                # self.memory_manager.save_message("Progress", final_spk["message"])
+                self.memory_manager.save_message("judge", final_spk["message"])
                 break
 
             round_number += 1
             self.memory_manager.increment_round()
             debate["status"]["step"] = self.memory_manager.current_round
+            debate["debate_log"] = self.memory_manager.load_all()
 
         final_eval = self.evaluate({})
         self.memory_manager.save_message("judge", final_eval)
         debate["end_time"] = datetime.now()
-        debate["debate_log"] = self.memory_manager.load_all()
+        
         debate["status"]["type"] = "end"  # 종료 상태로 설정
         result = {"timestamp": datetime.now(), "speaker": "judge", "message": final_eval}
         return result
