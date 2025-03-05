@@ -1,6 +1,6 @@
 import os
 import json
-import time
+import time 
 import re
 from datetime import datetime
 
@@ -84,6 +84,7 @@ class Debate_3(Progress):
                     "step": 0     
                 },
                 "debate_log": [],
+                "judgement_reason":"",
                 "score" : {
                     "logicality_pos": 0,
                     "logicality_neg": 0,
@@ -468,6 +469,73 @@ class Debate_3(Progress):
         self.memory_manager.save_message(speaker, message)
         return {"speaker": speaker, "message": message}
 
+
+    def progress(self) -> dict:
+        debate = self.data
+        result = {"timestamp": None, "speaker": "", "message": ""}
+
+        if debate["_id"] is None:
+            result["speaker"] = "SYSTEM"
+            result["message"] = "유효하지 않은 토론입니다."
+            result["timestamp"] = datetime.now()
+            return result
+
+        debate["topic"] = self.data["topic"]
+        debate["status"]["step"] = self.memory_manager.current_round
+
+
+
+        pos_time_remaining = 20.0
+        neg_time_remaining = 20.0
+
+        initial = self.next_speaker(is_final=False)
+        # self.memory_manager.save_message("Progress", f"초기 발언자: {initial['speaker']}")
+        first_speaker = initial["speaker"]
+        second_speaker = "neg" if first_speaker == "pos" else "pos"
+        order = [first_speaker, second_speaker]
+
+        round_number = 1
+        max_round = 10  # 최대 라운드 수
+        while round_number <= max_round:
+            if round_number == 1:
+                prompt = self.progress_round1_prompt.format(topic=self.data["topic"])
+                prog_text = self.generate_text("progress_agent", prompt)
+            else:
+                prompt = self.progress_round_prompt.format(pos_time=pos_time_remaining, neg_time=neg_time_remaining)
+                prog_text = self.generate_text("progress_agent", prompt)
+            print(prog_text)
+
+            self.memory_manager.save_message("judge", prog_text)
+
+            for speaker in order:
+                start = time.time()
+                turn = self.debate_turn(speaker, round_number)
+                end = time.time()
+                duration = end - start
+                print(f"{turn['speaker']} : {turn['message']}")
+                if speaker == "pos":
+                    pos_time_remaining -= duration
+                elif speaker == "neg":
+                    neg_time_remaining -= duration
+            if pos_time_remaining <= 0 or neg_time_remaining <= 0:
+                final_spk = self.next_speaker(is_final=True)
+                self.memory_manager.save_message("judge", final_spk["message"])
+                break
+
+            round_number += 1
+            self.memory_manager.increment_round()
+            debate["status"]["step"] = self.memory_manager.current_round
+            debate["debate_log"] = self.memory_manager.load_all()
+
+        final_eval = self.evaluate({})
+        self.memory_manager.save_message("judge", final_eval)
+        debate["end_time"] = datetime.now()
+        
+        debate["status"]["type"] = "end"  # 종료 상태로 설정
+        result = {"timestamp": datetime.now(), "speaker": "judge", "message": final_eval}
+        return result
+
+
     def evaluate(self, _) -> dict:
         # 모든 발언 불러오기
         pos_msgs = self.memory_manager.load_by_speaker("pos")
@@ -539,6 +607,13 @@ class Debate_3(Progress):
         else:
             self.data["result"] = "draw"
 
+        if self.data["result"] == "positive":
+            self.data["judgement_reason"] += "\n\n찬성 측 승리!"               
+        elif self.data["result"] == "negative":
+            self.data["judgement_reason"] += "\n\n반대 측 승리!"    
+        else:
+            self.data["judgement_reason"]+= "\n\n무승부"  
+
         self.data["score"] = {
             "logicality_pos": logicality_pos,
             "logicality_neg": logicality_neg,
@@ -553,71 +628,4 @@ class Debate_3(Progress):
         self.data["debate_log"] = self.memory_manager.load_all()
         self.data["status"]["type"] = "end"
 
-        return self.data["result"]
-            
-
-
-    def progress(self) -> dict:
-        debate = self.data
-        result = {"timestamp": None, "speaker": "", "message": ""}
-
-        if debate["_id"] is None:
-            result["speaker"] = "SYSTEM"
-            result["message"] = "유효하지 않은 토론입니다."
-            result["timestamp"] = datetime.now()
-            return result
-
-        debate["topic"] = self.data["topic"]
-        debate["status"]["step"] = self.memory_manager.current_round
-
-
-
-        pos_time_remaining = 20.0
-        neg_time_remaining = 20.0
-
-        initial = self.next_speaker(is_final=False)
-        # self.memory_manager.save_message("Progress", f"초기 발언자: {initial['speaker']}")
-        first_speaker = initial["speaker"]
-        second_speaker = "neg" if first_speaker == "pos" else "pos"
-        order = [first_speaker, second_speaker]
-
-        round_number = 1
-        max_round = 10  # 최대 라운드 수
-        while round_number <= max_round:
-            if round_number == 1:
-                prompt = self.progress_round1_prompt.format(topic=self.data["topic"])
-                prog_text = self.generate_text("progress_agent", prompt)
-            else:
-                prompt = self.progress_round_prompt.format(pos_time=pos_time_remaining, neg_time=neg_time_remaining)
-                prog_text = self.generate_text("progress_agent", prompt)
-            print(prog_text)
-
-            self.memory_manager.save_message("judge", prog_text)
-
-            for speaker in order:
-                start = time.time()
-                turn = self.debate_turn(speaker, round_number)
-                end = time.time()
-                duration = end - start
-                print(f"{turn['speaker']} : {turn['message']}")
-                if speaker == "pos":
-                    pos_time_remaining -= duration
-                elif speaker == "neg":
-                    neg_time_remaining -= duration
-            if pos_time_remaining <= 0 or neg_time_remaining <= 0:
-                final_spk = self.next_speaker(is_final=True)
-                self.memory_manager.save_message("judge", final_spk["message"])
-                break
-
-            round_number += 1
-            self.memory_manager.increment_round()
-            debate["status"]["step"] = self.memory_manager.current_round
-            debate["debate_log"] = self.memory_manager.load_all()
-
-        final_eval = self.evaluate({})
-        self.memory_manager.save_message("judge", final_eval)
-        debate["end_time"] = datetime.now()
-        
-        debate["status"]["type"] = "end"  # 종료 상태로 설정
-        result = {"timestamp": datetime.now(), "speaker": "judge", "message": final_eval}
-        return result
+        return self.data["judgement_reason"]
