@@ -102,7 +102,7 @@ class GetData():
         else:
             progress_all = self.mongodb_connection.select_data_from_query("progress")
             result = {str(progress["_id"]) : {key : value for key, value in progress.items()}
-                for progress in progress_all}
+                for progress in reversed(progress_all)}
             return result
     
 
@@ -116,6 +116,11 @@ class GetData():
             progress = self.mongodb_connection.select_data_from_id("progress",id)
         if progress:
             progress["_id"] = str(progress["_id"])
+            for position, participant in progress["participants"].items():
+                img_id = participant.get("img")
+                if img_id:
+                    img_filename = self.img_id_to_filename(str(img_id))
+                    participant["img"] = img_filename
             ## ** **를 굵은 글씨로 바꿔서 반환
             for log in progress.get("debate_log"):
                 speaker = progress["participants"].get(log["speaker"])
@@ -239,7 +244,7 @@ class GetData():
         if total_debates == 0:
             winning_rate = 0  
         else:
-            winning_rate = (wins / total_debates) * 100.0
+            winning_rate = int((wins / total_debates) * 100.0)
         return {
             "target_name": target_name,
             "target_id": target_id,

@@ -6,6 +6,7 @@
 {% endblock %}
 
 {% block content %}
+    
     <div class="">
         <div class="container-sm">
             <div class="container ">
@@ -14,29 +15,34 @@
                         <img id="imagePreview" src="" alt="미리보기" style="max-width: 300px; display: none;">
                     </div>
                     <div class="row p-3">
-                        <div class="col-sm-3"></div>
-                        <div class="col-sm-6">
-                            <label class="object-detect-upload" for="imageUpload">객체를 탐지할 이미지 업로드하기</label>
+                        <div class="col-sm-2"></div>
+                        <div class="col-sm-8">
+                            <label class="btn btn-custom-black-transparant btn-block" for="imageUpload">객체를 탐지할 이미지 업로드하기</label>
                             <input type="file" class="" id="imageUpload" name="image" placeholder="" accept="image/*" style="display: none;">
                         </div>
-                        <div class="col-sm-3"></div>
+                        <div class="col-sm-2"></div>
                     </div>
                     <div class="row p-3">
-                        <div class="col-sm-3"></div>
-                        <div class="col-sm-6">
+                        <div class="col-sm-2"></div>
+                        <div class="col-sm-8">
                             <input id="detectButton" class="object-detect-upload" type="submit" value="객체 탐지" style="display: none;"/>
                         </div>
-                        <div class="col-sm-3"></div>
+                        <div class="col-sm-2"></div>
                     </div>
                 </form>
+            </div>
+            
+            <div class="container text-center" id="loading" style="display: none;">
+                <div class="spinner-border custom-spinner-setting text-muted"></div>
             </div>
             <div id="generateAI_area" class="container form-group p-3" style="display: none;">
                 <form id="ImageSelectedForm" method="post" enctype="multipart/formdata" data-create-profile-url = "{{ request.url_for('profile_create_request') }}">
                     <div class="row">
                         <div class="col-sm-1"></div>
                         <div class="col-sm-5">
-                            <p>탐지된 객체 목록</p>
-                            <div id="detected-list" class=""></div>
+                            <div id="detected-list" class="">
+                                <p>탐지된 객체 목록</p>
+                            </div>
                         </div>
                         <div class="col-sm-5">
                             <div id="ai-list" class="custom-radio">
@@ -52,18 +58,17 @@
                         </div>
                         <div class="col-sm-1"></div>
                     </div>
-                    <div class="row">
-                        <div class="col-sm-4"></div>
-                        <div class="col-sm-4">
-                            <button class="btn btn-block btn-custom-purple" type="submit">생성 요청</button>
+                    <div class="row p-2">
+                        <div class="col-sm-3"></div>
+                        <div class="col-sm-6">
+                            <button class="btn btn-block btn-custom-black-transparant" type="submit">참가자 프로필 만들기</button>
                         </div>
-                        <div class="col-sm-4"></div>
+                        <div class="col-sm-3"></div>
                     </div>
                 </form>
             </div>
         </div>
     </div>
-
 
 
 
@@ -93,8 +98,10 @@
                 event.preventDefault();
                 const fileInput = document.getElementById("imageUpload");
                 const file = fileInput.files[0]; // 업로드한 파일 가져오기
+                document.getElementById("loading").style.display = "block";
                 if (!fileInput.files.length) {
                     alert("파일을 선택하세요.");
+                    document.getElementById("loading").style.display = "none";
                     return;
                 }
 
@@ -118,11 +125,12 @@
                     generateInputText(result.data);
                 }
                 document.getElementById("generateAI_area").style = "display: block;";
+                document.getElementById("loading").style.display = "none";
             });
 
             function generateRadioButtons(data) {
                 const container = document.getElementById("detected-list");
-                container.innerHTML = "";  // 기존 내용 초기화
+                container.innerHTML = "<p>탐지된 객체 목록</p>";  // 기존 내용 초기화
 
                 data.forEach((detected, index) => {
                     const label = document.createElement("div");
@@ -146,6 +154,7 @@
                 const inputbox = document.createElement("input");
                 inputbox.setAttribute("type", "text");
                 inputbox.setAttribute("name", "name");
+                inputbox.setAttribute("class", "form-control");
                 inputbox.setAttribute("data-filename", data[0].filename);
                 container.appendChild(label);
                 container.appendChild(inputbox);
@@ -158,10 +167,13 @@
                 const selectedObject = document.querySelector('input[name="name"]:checked');
                 const selectedAI = document.getElementById('ai')
                 
+                document.getElementById("loading").style.display = "block";
                 const writedObject = document.querySelector('input[name="name"]')
                 if (!selectedObject && !writedObject) {
 
                     alert("객체를 선택하세요.");
+                    
+                    document.getElementById("loading").style.display = "none";  
                     return;
                 }
 
@@ -174,12 +186,17 @@
                 }
                 // FastAPI 서버에 선택한 객체 정보 전송
                 const createProfileRequestURL =  "{{ request.url_for('profile_create_request') }}"
+                const timeout = 60000; //60초 timeout
+                    const controller = new AbortController();
+                    const timeoutId = setTimeout(() => controller.abort(), timeout);
+                    // 60초 타임아웃을 적용하여 fetch 실행
                 const response = await fetch(createProfileRequestURL, {
                     method: "POST",
                     headers:{
                         "Content-Type": "application/json"
                     },
-                    body:JSON.stringify(requestData)
+                    body:JSON.stringify(requestData),
+                    signal:controller.signal
                 });
 
                 const result = await response.json();
@@ -189,6 +206,9 @@
                 } else if (writedObject){
                     alert(`입력한 객체 ${writedObject.value} 로 AI가 생성중입니다...`);
                 }
+                
+                document.getElementById("loading").style.display = "none";
+                window.location.href =`/profile`
             });
         })
 

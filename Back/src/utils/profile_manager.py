@@ -164,7 +164,7 @@ class ProfileManager:
         if total_debates == 0:
             winning_rate = 0  
         else:
-            winning_rate = (wins / total_debates) * 100.0
+            winning_rate = int((wins / total_debates) * 100.0)
         return {
             "target_name": target_name,
             "target_id": target_id,

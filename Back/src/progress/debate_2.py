@@ -38,6 +38,7 @@ class Debate_2(Progress):
                     "step": 0     # 1부터 11까지 단계
                 },
                 "debate_log": [],
+                "judgement_reason":"",
                 "score" : {
                     "logicality_pos": 0,
                     "logicality_neg": 0,
@@ -108,7 +109,7 @@ class Debate_2(Progress):
                 "그럼 먼저, **찬성 측**의 의견을 들어보겠습니다. {self.data['topic']}에 대한 찬성 입장은 무엇이며, 이를 뒷받침하는 주요 근거와 증거는 무엇인가요?"
                 """
             
-            result["message"] = self.generate_text(result["speaker"],prompt)
+            result["message"] = self.generate_text_with_vectorstore(result["speaker"],prompt)
 
         elif step == 2:
             # 2. 찬성 측 주장
@@ -142,7 +143,7 @@ class Debate_2(Progress):
             간결하면서도 설득력 있게 작성하세요. 적용 가능한 경우, 사실적 근거를 제공하세요.
             """
             prompt += f"당신의 주장에서 당신의 특징을 강조하세요. {self.participant[result['speaker']].name}의 관점에서 생각해 보세요. **특유의 말투가 있다면 강조해주세요.**"
-            result["message"] = self.generate_text(result["speaker"], prompt)
+            result["message"] = self.generate_text_with_vectorstore(result["speaker"], prompt)
 
         elif step == 3:
             # 3. 반대 측 주장
@@ -177,7 +178,7 @@ class Debate_2(Progress):
             """
             prompt += f"당신의 주장에서 당신의 특징을 강조하세요. {self.participant[result['speaker']].name}의 관점에서 생각해 보세요. **특유의 말투가 있다면 강조해주세요.**"
             
-            result["message"] = self.generate_text(result["speaker"], prompt)
+            result["message"] = self.generate_text_with_vectorstore(result["speaker"], prompt)
 
         elif step == 4:
             # 4. 판사가 변론 준비시간 1초 제공
@@ -227,7 +228,7 @@ class Debate_2(Progress):
 
             prompt += f"당신의 주장에서 당신의 특징을 강조하세요. {self.participant[result['speaker']].name}의 관점에서 생각해 보세요. **특유의 말투가 있다면 강조해주세요.**"
             
-            result["message"] = self.generate_text(result["speaker"],prompt)
+            result["message"] = self.generate_text_with_vectorstore(result["speaker"],prompt)
         elif step == 6:
             # 6. 찬성 측 변론
             result["speaker"] = "pos"
@@ -271,7 +272,7 @@ class Debate_2(Progress):
 
             prompt += f"당신의 주장에서 당신의 특징을 강조하세요. {self.participant[result['speaker']].name}의 관점에서 생각해 보세요. **특유의 말투가 있다면 강조해주세요.**"
             
-            result["message"] = self.generate_text(result["speaker"],prompt)
+            result["message"] = self.generate_text_with_vectorstore(result["speaker"],prompt)
 
         elif step == 7:
             # 7. 판사가 최종 주장 시간 부여
@@ -319,7 +320,7 @@ class Debate_2(Progress):
             """
             prompt += f"당신의 주장에서 당신의 특징을 강조하세요. {self.participant[result['speaker']].name}의 관점에서 생각해 보세요. **특유의 말투가 있다면 강조해주세요.**"
 
-            result["message"] = self.generate_text(result["speaker"],prompt)
+            result["message"] = self.generate_text_with_vectorstore(result["speaker"],prompt)
 
         elif step == 9:
             # 9. 반대 측 최종 결론
@@ -363,7 +364,7 @@ class Debate_2(Progress):
             prompt += f"당신의 주장에서 당신의 특징을 강조하세요. {self.participant[result['speaker']].name}의 관점에서 생각해 보세요. **특유의 말투가 있다면 강조해주세요.**"
             
             
-            result["message"] = self.generate_text(result["speaker"],prompt)
+            result["message"] = self.generate_text_with_vectorstore(result["speaker"],prompt)     
 
         elif step == 10:
             # 10. 판사가 판결 준비시간(1초) 부여
@@ -432,19 +433,19 @@ class Debate_2(Progress):
         3. 분석을 **명확하고 간결하게 요약**하세요.  
         4. 최종적으로 **점수를 포함한 평가 결과**를 제공하세요.  
 
-        **[글 1]**  
+        **[찬성측]**  
         {pos_log}  
 
-        **[글 2]**  
+        **[반대측]**  
         {neg_log}  
 
         ### **출력 형식:**  
 
-        - **글 1 분석:** (논리적 강점과 약점에 대한 상세 분석)  
-        - **글 1 논리적 타당성 점수 (pos): 점수**  
+        - **찬성측 논리력 분석:** (논리적 강점과 약점에 대한 상세 분석)  
+        - **찬성측 논리력 점수 (pos): 점수**  
 
-        - **글 2 분석:** (논리적 강점과 약점에 대한 상세 분석)  
-        - **글 2 논리적 타당성 점수 (neg): 점수**  
+        - **반대측 논리력 분석:** (논리적 강점과 약점에 대한 상세 분석)  
+        - **반대측 논리력 점수 (neg): 점수**  
         """
 
 
@@ -469,19 +470,19 @@ class Debate_2(Progress):
         3. 반박의 **전반적인 효과성과 상대 주장을 얼마나 효과적으로 반박했는지** 요약하세요.  
         4. 최종적으로 **100점 척도의 반박 강도 점수를 포함한 평가**를 제공하세요.  
 
-        **[반박문 1]**  
+        **[찬성측 반박문]**  
         {pos_rebuttal}  
 
-        **[반박문 2]**  
+        **[반대측 반박문]**  
         {neg_rebuttal}  
 
         ### **출력 형식:**  
 
-        - **반박문 1 분석:** (논리적 강점과 약점에 대한 상세 분석)  
-        - **반박문 1 반박력 점수 (pos): 점수**  
+        - **찬성측 반박문 분석:** (논리적 강점과 약점에 대한 상세 분석)  
+        - **찬성측 반박력 점수 (pos): 점수**  
 
-        - **반박문 2 분석:** (논리적 강점과 약점에 대한 상세 분석)  
-        - **반박문 2 반박력 점수 (neg): 점수**  
+        - **반대측 반박분 문석** (논리적 강점과 약점에 대한 상세 분석)  
+        - **반대측 반박력 점수 (neg): 점수**  
         """
 
 
@@ -515,11 +516,11 @@ class Debate_2(Progress):
 
         ### **foramat:**  
 
-        - **글 1 분석:** (설득력에 대한 상세 분석: 강점 및 약점)  
-        - **글 1 설득력 점수 (pos): 점수**  
+        - **찬성측 설득력 분석:** (설득력에 대한 상세 분석: 강점 및 약점)  
+        - **찬성측 설득력 점수 (pos): 점수**  
 
-        - **글 2 분석:** (설득력에 대한 상세 분석: 강점 및 약점)  
-        - **글 2 설득력 점수 (neg): 점수**  
+        - **반대측 설득력 분석:** (설득력에 대한 상세 분석: 강점 및 약점)  
+        - **반대측 설득력 점수 (neg): 점수**  
         """
     
 
@@ -531,6 +532,7 @@ class Debate_2(Progress):
         def calculate_score(judge, prompt):
             """텍스트 생성 후 점수를 추출하는 함수"""
             result_text = self.generate_text(judge, prompt)
+            self.data["judgement_reason"] += f"\n {result_text}"            
             return int(extract_score(r'\(pos\)\:.*?(\d+)(?:\*|\/100)?', result_text)), \
                 int(extract_score(r'\(neg\)\:.*?(\d+)(?:\*|\/100)?', result_text))
 
@@ -567,6 +569,13 @@ class Debate_2(Progress):
         else:
             self.data["result"] = "draw"
 
+        if self.data["result"] == "positive":
+            self.data["judgement_reason"] += "\n\n찬성 측 승리!"               
+        elif self.data["result"] == "negative":
+            self.data["judgement_reason"] += "\n\n반대 측 승리!"    
+        else:
+            self.data["judgement_reason"]+= "\n\n무승부"  
+
         self.data["score"] = {
             "logicality_pos": logicality_pos,
             "logicality_neg": logicality_neg,
@@ -577,7 +586,7 @@ class Debate_2(Progress):
             "match_pos": match_pos,
             "match_neg": match_neg
         }
-
+        print(self.data["judgement_reason"])
         print(self.data["score"])
 
-        return self.data["result"]
+        return self.data["judgement_reason"]

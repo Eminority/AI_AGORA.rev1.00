@@ -100,7 +100,6 @@ async def auto_progressing():
         try:
             count = 0
             progress_list = copy.deepcopy([progresses.data for progresses in progress_manager.progress_pool.values()])
-            print(len(progress_list))
             for progressdata in progress_list:
                 #progress가 종료되지 않았다면
                 if progressdata.get("status") and progressdata.get("status").get("type") != "end":
@@ -109,7 +108,7 @@ async def auto_progressing():
                     id = str(progressdata.get("_id", ""))
                     if id and id in progress_manager.progress_pool.keys():
                         result = progress_manager.progress_pool[id].progress()
-                        print(f"====\nprogress step : {result.get('step')}\n{result['speaker']} 가 말했음")
+                        print(f"===={progress_manager.progress_pool[id].data['topic']}====\n====\nprogress step : {result.get('step')}\n{result['speaker']} 가 말했음")
                         print(progress_manager.save(id))
                 await asyncio.sleep(1)
             # if count == 0 and (auto_progress_create_task is None or auto_progress_create_task.done()):

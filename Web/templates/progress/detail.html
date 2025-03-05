@@ -4,17 +4,21 @@
 {% block add_scriptsheet %} {% endblock %}
 
 {% block content %}
-    <div class="container-sm">
+    <div class="container">
         <div class="container">
             <h4 id="progress-topic">
                 {{ progress.topic }}
             </h4>
         </div>
-        <div class="container row">
+        <div class="container-sm row">
             {% for position, data in progress.participants.items() %}
             <div class="col-sm-6 border">
                 <span>
-                    <strong>{{ position }}</strong> : {{ data.name }}</span>
+                    {% if data.img %}
+                        <img src="{{ url_for('static', path='image/profile/'+data.img) }}" style="width: 50px; height:50px; border-radius: 100%;"/>
+                    {% endif %}
+                    <strong>{{ position }}</strong> : {{ data.name }}
+                </span>
                 <ul>
                     <li>AI : {{ data.ai }}</li>
                     <li>속성 : {{ data.object_attribute }}</li>
@@ -24,50 +28,11 @@
         </div>
         <div id="status" data-status="{{ progress.status.type }}" style="display: none;">
         </div>
-        <div class="container row">
-            <div id="progress-log" data-message-len="{{ progress.debate_log | length }}">
-                {% for message in progress.debate_log %}
-                    <div class="media border p-3 m-3 {{ message.speaker }} shadow">
-                        <div class="media-body">
-                            
-                            {% if message.speaker == "pos" %}
-                            <div class="text-left">
-                                <strong>
-                                    <span class="speaker" data-position="{{ message.speaker }}">
-                                        찬성측
-                                    </span>
-                                </strong>
-                                <span>
-                                    ({{ message.name }})
-                                </span>
-                                <span class="timestamp">{{ message.timestamp }}</span>
-                            </div>
-                            {% elif message.speaker == "neg" %}
-                            <div class="text-right">
-                                <span class="timestamp">{{ message.timestamp }}</span>
-                                <strong>
-                                    <span class="speaker" data-position="{{ message.speaker }}">
-                                        반대측
-                                    </span>
-                                </strong>
-                                <span>
-                                    ({{ message.name }})
-                                </span>
-                            </div>
-                            {% else %}
-                                <div class="text-center">
-                                    <strong>
-                                        {{ message.name }}
-                                    </strong>
-                                    <span class="timestamp">{{ message.timestamp }}</span>
-                                </div>
-                            {% endif %}
-                            <div class="message" style="white-space: pre-line;">
-                                {{ message.message | safe }}
-                            </div>
-                        </div>
-                    </div>
-                {% endfor %}
+    </div>
+    <div class="container-lg">
+        <div>
+            <div id="progress-log" data-message-len=0>
+                
             </div>
         </div>
         <div class="p-3" style="align-items: center; display: flex; justify-content: center;">
@@ -86,10 +51,13 @@
 
             const id = getQueryParam("id");
 
+            fetchProgress();
+            let fetchInterval = setInterval(fetchProgress, 3000); // 인터벌 변수 저장
+
             async function fetchProgress(){
                 const progressLog = document.getElementById("progress-log");
                 const dataMessageLen = parseInt(progressLog.getAttribute("data-message-len"), 10);
-                let lastMessageLenght = isNaN(dataMessageLen) ? 0 : dataMessageLen;
+                let lastMessageLength = isNaN(dataMessageLen) ? 0 : dataMessageLen;
                 try {
                     const response = await fetch(`/progress/data?id=${id}`);
                     if (!response.ok){
@@ -97,53 +65,114 @@
                     }
 
                     const data = await response.json();
+
                     const newLog = data.debate_log || []; //debate_log가 없으면 빈 []를 반환
 
-                    if (newLog.length > lastMessageLenght) {
+                    if (newLog.length > lastMessageLength) {
                         progressLog.setAttribute("data-message-len", newLog.length)
                         //새 메시지 추가
-                        for (let i = lastMessageLenght; i<newLog.length; i++){
+                        for (let i = lastMessageLength; i<newLog.length; i++){
                             const message = newLog[i];
-                            console.log(message)
-                            const appendObj = add_progress_log(message);
-                            console.log(appendObj)
-;                            progressLog.append(appendObj);
-                            
+                            const appendObj = createMessageElement(message, data.participants);
+;                           requestAnimationFrame(() => {
+                                progressLog.appendChild(appendObj);
+                            });
                         }
                     }
-                    lastMessageLenght = newLog.length;
+                    lastMessageLength = newLog.length;
+
+                    
+                    if (data.status && data.status.type === "end") {
+                        const progress_end_message = document.createElement("div");
+                        progress_end_message.classList.add("media", "border", "p-3", "shadow", "text-center")
+                        progress_end_message.innerHTML=`
+                        토론이 종료되었습니다.
+                        `;
+                        requestAnimationFrame(() => {
+                            progressLog.appendChild(progress_end_message);
+                        });
+                        clearInterval(fetchInterval); // setInterval 중지
+                        return;
+                    }
 
                 } catch (error) {
                     console.error("Error fetching progress:", error);
                 }
             }
 
-            function add_progress_log(data){
+            function createMessageElement(message, participants) {
                 const messageElement = document.createElement("div");
-                messageElement.classList.add("media", "border", "p-3");
-                let speaker = ""
-                if (data.speaker == "pos"){
-                    speaker = "긍정측";
-                } else if (data.speaker == "neg"){
-                    speaker = "부정측";
-                } else {
-                    speaker = data.speaker;
+                messageElement.classList.add("media", "border", "p-3", message.speaker, "shadow");
+
+                let speakerLabel = "";
+                let speakerImage = "/static/img/default.png";
+
+                if (participants[message.speaker] && participants[message.speaker].img) {
+                    speakerImage = "/static/image/profile/" + participants[message.speaker].img;
                 }
-                messageElement.innerHTML = `
-                        <div class="media-body">
-                            <strong>
-                                <span class="speaker" data-position="${data.speaker}">${speaker} ${data.name}</span>
-                            </strong>
-                            <span class="timestamp">${data.timestamp}</span>
-                            <div class="message" style="white-space: pre-line;">
-                                ${data.message}
+
+                if (message.speaker === "pos") {
+                    speakerLabel = "찬성측";
+                    messageElement.innerHTML = `
+                    <div class="media-body">
+                        <div class="text-left"> <!-- ✅ 기존과 동일한 구조 유지 -->
+                            <div class="naming_space">
+                                <img src="${speakerImage}" alt="speaker image"/>
+                                <strong>
+                                    <span class="speaker" data-position="${message.speaker}">${speakerLabel}</span>
+                                </strong>
+                                <span>(${message.name})</span>
                             </div>
                         </div>
+                        <div class="message">${message.message.trim()}</div>
+                    </div>
                     `;
+                } else if (message.speaker === "neg") {
+                    speakerLabel = "반대측";
+                    messageElement.innerHTML = `
+                    <div class="media-body">
+                        <div class="text-right"> <!-- ✅ 기존과 동일한 구조 유지 -->
+                            <div class="naming_space">
+                                <span>(${message.name})</span>
+                                <strong>
+                                    <span class="speaker" data-position="${message.speaker}">${speakerLabel}</span>
+                                </strong>
+                                <img src="${speakerImage}" alt="speaker image"/>
+                            </div>
+                        </div>
+                        <div class="message">${message.message.trim()}</div>
+                    </div>
+                    `;
+                } else if (message.speaker === "judge") {
+                    speakerLabel = "< 판사 >";
+                    messageElement.innerHTML = `
+                        <div class="media-body">
+                            <div class="text-center">
+                                <div class="naming_space">
+                                    <strong>
+                                        <span class="speaker" data-position="${message.speaker}">${speakerLabel}</span>
+                                    </strong>
+                                </div>
+                            </div>
+                            <div class="message"><strong>${message.message.trim()}</strong></div>
+                        </div>
+                    `;
+                } else {
+                    messageElement.innerHTML = `
+                        <div class="media-body">
+                            <div class="text-center">
+                                <div class="naming_space">
+                                    <strong>${message.name}</strong>
+                                </div>
+                            </div>
+                            <div class="message">${message.message.trim()}</div>
+                        </div>
+                    `;
+                }
+
                 return messageElement;
             }
 
-            setInterval(fetchProgress, 3000);
         })
     </script>
 {% endblock %}

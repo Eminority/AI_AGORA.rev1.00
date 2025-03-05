@@ -59,6 +59,7 @@ async def progress_create_request(progressData:ProgressCreateRequestData):
     print(progressData.model_dump())
     with httpx.Client() as client:
         response = client.post(
+            timeout=60.0,
             url=url,
             headers = {"Content-Type": "application/json"},
             json=progressData.model_dump()

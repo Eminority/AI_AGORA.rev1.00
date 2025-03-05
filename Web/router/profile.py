@@ -48,6 +48,7 @@ async def profile_create_request(request_data:ProfileCreateRequestData):
     headers = {"Content-Type": "application/json"}
     with httpx.Client() as client:
         response = client.post(
+            timeout=60.0,
             url=url,
             headers=headers,
             json=request_data.model_dump()

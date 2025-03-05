@@ -8,41 +8,43 @@
 {% block content %}
     <div class="content-container">
         <div class="container-sm text-center p-3">
-            <div class="create-button" onclick="location.href='{{ request.url_for('profile_create_page') }}'">
-                    <h1>프로필 생성하기</h1>
+            <div class="create-button shadow" onclick="location.href='{{ request.url_for('profile_create_page') }}'">
+                    프로필 생성하기
             </div>
         </div>
     </div>
-    
     <div class="">
         <div class="ai_profiles_container container-sm">
             <table class="table table-striped table-bordered text-center">
                 <thead>
-                    <th class="col-sm-1">이미지</th>
-                    <th class="col-sm-2">이름</th>
-                    <th class="col-sm-2">AI</th>
-                    <th class="col-sm-1">승/패</th>
-                    <th class="col-sm-2">논리력</th>
-                    <th class="col-sm-2">반박력</th>
-                    <th class="col-sm-2">설득력</th>
+                    <th class="" style="width:50px;">이미지</th>
+                    <th class="align-middle">이름</th>
+                    <th class="align-middle">AI</th>
+                    <th class="align-middle">토론수</th>
+                    <th class="align-middle">승률</th>
+                    <th class="align-middle">평균점수</th>
+                    <th class="align-middle">논리력</th>
+                    <th class="align-middle">반박력</th>
+                    <th class="align-middle">설득력</th>
                 </thead>
                 <tbody>
                     {% for id, data in profiles.items() %}
-                        <tr class="ai_profile" data-profile-id="{{ id }}">
-                            <td class="align-middle">
-                                <img src="{{ url_for('get_image', filename=data.img) }}" style="width: 50px; height: auto;">
+                        <tr class="ai_profile" data-profile-id="{{ id }}" style="cursor: pointer;">
+                            <td class="">
+                                <img class="rounded-circle" src="{{ url_for('get_image', filename=data.img) }}" style="width: 50px; height: 50px;">
                             </td>
                             <td class="align-middle">{{ data.name }}</td>
                             <td class="align-middle">{{ data.ai }}</td>
-                            <td class="align-middle">{{ data.stats.wins }} / {{ data.stats.losses }}</td>
+                            <td class="align-middle">{{ data.stats.total_debates }}</td>
+                            <td class="align-middle">{{ data.stats.winning_rate }}%</td>
+                            <td class="align-middle">{{ data.stats.avg_match }}</td>
                             <td class="align-middle">{{ data.stats.avg_logicality }}</td>
                             <td class="align-middle">{{ data.stats.avg_rebuttal }}</td>
                             <td class="align-middle">{{ data.stats.avg_persuasion }}</td>
                         </tr>
                     {% endfor %}
                 </tbody>
-            </div>
+            </table>
         </div>
-    </div>
     </div>
 {% endblock %}
