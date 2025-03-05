@@ -24,15 +24,44 @@
         </div>
         <div id="status" data-status="{{ progress.status.type }}" style="display: none;">
         </div>
-        <div>
+        <div class="container row">
             <div id="progress-log" data-message-len="{{ progress.debate_log | length }}">
                 {% for message in progress.debate_log %}
-                    <div class="media border p-3">
+                    <div class="media border p-3 m-3 {{ message.speaker }} shadow">
                         <div class="media-body">
-                            <strong>
-                                <span class="speaker" data-position="{{ message.speaker }}">{{ message.speaker }}</span>
-                            </strong>
-                            <span class="timestamp">{{ message.timestamp }}</span>
+                            
+                            {% if message.speaker == "pos" %}
+                            <div class="text-left">
+                                <strong>
+                                    <span class="speaker" data-position="{{ message.speaker }}">
+                                        찬성측
+                                    </span>
+                                </strong>
+                                <span>
+                                    ({{ message.name }})
+                                </span>
+                                <span class="timestamp">{{ message.timestamp }}</span>
+                            </div>
+                            {% elif message.speaker == "neg" %}
+                            <div class="text-right">
+                                <span class="timestamp">{{ message.timestamp }}</span>
+                                <strong>
+                                    <span class="speaker" data-position="{{ message.speaker }}">
+                                        반대측
+                                    </span>
+                                </strong>
+                                <span>
+                                    ({{ message.name }})
+                                </span>
+                            </div>
+                            {% else %}
+                                <div class="text-center">
+                                    <strong>
+                                        {{ message.name }}
+                                    </strong>
+                                    <span class="timestamp">{{ message.timestamp }}</span>
+                                </div>
+                            {% endif %}
                             <div class="message" style="white-space: pre-line;">
                                 {{ message.message | safe }}
                             </div>
@@ -41,7 +70,9 @@
                 {% endfor %}
             </div>
         </div>
-        <button onclick='location.href="/progress"'> 대화 목록으로</button> 
+        <div class="p-3" style="align-items: center; display: flex; justify-content: center;">
+            <button class="btn btn-custom-black-transparant" onclick='location.href="/progress"'> 대화 목록으로</button> 
+        </div>
     </div>
 
     <script>
@@ -90,11 +121,18 @@
             function add_progress_log(data){
                 const messageElement = document.createElement("div");
                 messageElement.classList.add("media", "border", "p-3");
-                
+                let speaker = ""
+                if (data.speaker == "pos"){
+                    speaker = "긍정측";
+                } else if (data.speaker == "neg"){
+                    speaker = "부정측";
+                } else {
+                    speaker = data.speaker;
+                }
                 messageElement.innerHTML = `
                         <div class="media-body">
                             <strong>
-                                <span class="speaker" data-position="${data.speaker}">${data.speaker}</span>
+                                <span class="speaker" data-position="${data.speaker}">${speaker} ${data.name}</span>
                             </strong>
                             <span class="timestamp">${data.timestamp}</span>
                             <div class="message" style="white-space: pre-line;">

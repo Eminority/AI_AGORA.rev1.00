@@ -1,14 +1,14 @@
-<nav class="navbar navbar-expand-sm bg-custom-nav">
+<nav class="navbar navbar-expand-sm bg-custom-nav" style="font-family: 'Forum',  Arial, 'Noto Sans'; padding-top: 2px; padding-bottom: 2px;">
     <!-- logo -->
-    <a class="navbar-brand" href="{{ request.url_for('home') }}">
-        AI AGORA
+    <a class="navbar-brand" href="{{ request.url_for('home') }}" style="margin: 0px 0px px 0px; padding: 0px 0px 0px 0px;">
+        <img src="{{ url_for('static', path='img/logo_scale_re.png') }}" style="height: 40px; width: auto;"/>
     </a>
-    <ul class="navbar-nav">
+    <ul class="navbar-nav" style="font-size: 30px;">
         <li class="nav-item">
-            <a class="nav-link" href="{{ request.url_for('progress_page') }}">주제</a>
+            <a class="nav-link" style="font-family: 'Forum',  Arial, 'Noto Sans'; font-weight: 500;  padding-top: 2px; padding-bottom: 2px; margin-top:0px; margin-bottom: 0px;" href="{{ request.url_for('progress_page') }}">AI AGORA</a>
         </li>
         <li class="nav-item">
-            <a class="nav-link" href="{{ request.url_for('profile_page') }}">프로필</a>
+            <a class="nav-link" style="font-family: 'Forum',  Arial, 'Noto Sans'; font-weight: 500;  padding-top: 2px; padding-bottom: 2px; margin-top:0px; margin-bottom: 0px;" href="{{ request.url_for('profile_page') }}">PROFILE</a>
         </li>
     </ul>
 </nav>

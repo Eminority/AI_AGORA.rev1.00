@@ -45,7 +45,7 @@ class GetData():
                 for obj in obj_all}
             for id, obj in result.items():
                 img_id = obj.get("img")
-                result[id]["stats"] = self.get_stats_by_id(self.mongodb_connection.get_collection("object"), id)
+                result[id]["stats"] = self.get_stats_by_id(self.mongodb_connection.get_collection("progress"), id)
                 if img_id:
                     img_filename = self.img_id_to_filename(str(img_id))
                     result[id]["img"] = img_filename
@@ -61,6 +61,7 @@ class GetData():
             profile = self.mongodb_connection.select_data_from_id("object",id)
             profile["_id"] = id
             img_id = profile.get("img")
+            profile["stats"] = self.get_stats_by_id(self.mongodb_connection.get_collection("progress"), id)
             if img_id:
                 img_filename = self.img_id_to_filename(str(img_id))
                 profile["img"] = img_filename
@@ -119,8 +120,8 @@ class GetData():
             for log in progress.get("debate_log"):
                 speaker = progress["participants"].get(log["speaker"])
                 if speaker:
-                    log["speaker"] = log["speaker"] + f" ({speaker['name']})"
-                    log["message"] = format_to_bold(log["message"])
+                    log["name"] = speaker['name']
+                log["message"] = format_to_bold(log["message"])
                 log["timestamp"] = format_datetime(str(log["timestamp"]))
         return progress
     
@@ -234,7 +235,11 @@ class GetData():
         avg_rebuttal   = sum_rebuttal   / score_count if score_count else 0.0
         avg_persuasion = sum_persuasion / score_count if score_count else 0.0
         avg_match      = sum_match      / score_count if score_count else 0.0
-        winning_rate = wins/losses*100
+
+        if total_debates == 0:
+            winning_rate = 0  
+        else:
+            winning_rate = (wins / total_debates) * 100.0
         return {
             "target_name": target_name,
             "target_id": target_id,

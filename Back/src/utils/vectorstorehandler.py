@@ -71,8 +71,8 @@ class VectorStoreHandler:
             if article.get("content", "").strip() and 
                article.get("content", "").strip() != "❌ 본문을 가져오지 못했습니다."
         ]
-        if not valid_articles:
-            raise ValueError("유효한 기사 내용이 없습니다. 크롤링 데이터를 확인하세요.")
+        # if not valid_articles:
+        #     raise ValueError("유효한 기사 내용이 없습니다. 크롤링 데이터를 확인하세요.")
         
         # 2. 각 기사의 본문을 청크(Document 객체)로 분할
         all_documents = []
@@ -82,8 +82,8 @@ class VectorStoreHandler:
             if docs:
                 all_documents.extend(docs)
         
-        if not all_documents:
-            raise ValueError("문서를 분할한 결과, 유효한 텍스트 청크가 없습니다.")
+        # if not all_documents:
+        #     raise ValueError("문서를 분할한 결과, 유효한 텍스트 청크가 없습니다.")
         
         # 3. FAISS 벡터스토어 생성
         vectorstore = create_vectorstore(all_documents, self.embeddings)

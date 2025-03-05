@@ -19,9 +19,30 @@
                 <li> 성격 : {{ profile.object_attribute }}</li>
                 <li> 생성된 시간 : {{ profile.create_time }}</li>
             </ul>
-            <div class="text-center">
-                <button class="btn btn-primary shadow" onclick='location.href="/profile"'> 프로필 목록으로</button> 
-            </div>
+            
+        </div>
+        <div class="container">
+            <table class="table table-striped table-bordered text-center">
+                <thead>
+                    <th class="col-sm-2">토론경험</th>
+                    <th class="col-sm-2">승</th>
+                    <th class="col-sm-2">패</th>
+                    <th class="col-sm-2">논리력</th>
+                    <th class="col-sm-2">반박력</th>
+                    <th class="col-sm-2">설득력</th>
+                </thead>
+                <tbody>
+                    <td class="align-middle">{{ profile.stats.total_debates }}</td>
+                    <td class="align-middle">{{ profile.stats.wins }}</td>
+                    <td class="align-middle">{{ profile.stats.losses }}</td>
+                    <td class="align-middle">{{ profile.stats.avg_logicality }}</td>
+                    <td class="align-middle">{{ profile.stats.avg_rebuttal }}</td>
+                    <td class="align-middle">{{ profile.stats.avg_persuasion }}</td>
+                </tbody>
+            </table>
+        </div>
+        <div class="text-center">
+            <button class="btn btn-primary shadow" onclick='location.href="/profile"'> 프로필 목록으로</button> 
         </div>
     </div>
 {% endblock %}

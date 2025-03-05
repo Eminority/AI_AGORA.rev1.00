@@ -6,6 +6,9 @@
 
 {% block content %}
     <div class="">
+        <div class="p-3">
+
+        </div>
         <div class="container progress_request_box">
             <form id="progressForm" method="post">
                 
@@ -15,35 +18,34 @@
                 </div>
                 <div class="row">
                     <div class="col-sm-4">
-                        <label for="generate_type">대화 생성 방식</label>
                         <select id="generate_type" name="type" class="custom-select">
                             <option value="auto" selected>참가자 자동 전체 입력</option>
                             <option value="select-participant">참가자 선택</option>
                         </select>
                     </div>
                     <div class="col-sm-4 select-others">
-                        <label for="pos_id">찬성 측 AI:</label>
-                        <select id="pos_id" name="pos_id" class="custom-select">  
+                        <select id="pos_id" name="pos_id" class="custom-select">
+                            <option value="{{ (profiles.values() | list | first)._id }}">찬성측 AI</option>
                             {% for id, data in profiles.items() %}
                                 <option value="{{ data._id }}"> {{ data.name }} - {{ data.ai }} </option>
                             {% endfor %}
                         </select>
                     </div>
                     <div class="col-sm-4 select-others">
-                        <label for="neg_id">반대 측 AI:</label>
                         <select id="neg_id" name="neg_id" class="custom-select">  
+                            <option value="{{ (profiles.values() | list | first)._id }}">반대측 AI</option>
                             {% for id, data in profiles.items() %}
                                 <option value="{{ data._id }}"> {{ data.name }} - {{ data.ai }} </option>
                             {% endfor %}
                         </select>
                     </div>
                 </div>
+                <hr/>
                 <div id= "participants" class="select-others row">
                     <div class="col-sm-4">
                         <div class="select-others">
-                            <label for="progress_type">세션 형태</label>
                             <select id="progress_type" class="custom-select" name="type">
-                                <option value="debate">기본 토론</option>
+                                <option value="debate_2">토론 방식 선택</option>
                                 <option value="debate_2">토론 - 판사 3</option>
                                 <option value="debate_3">토론 - 진행자 추가</option>
                             </select>
@@ -59,12 +61,6 @@
                     </div>
                 </div>
             </form>
-            <hr/>
-        </div>
-        <div class="container p-3">
-                <button class="btn btn-primary shadow" type="button"
-                    onclick='location.href="/progress"'>목록으로 돌아가기</button>
-            <div class="col-sm-3"><!-- 빈칸 --></div>
         </div>
     </div>
 
