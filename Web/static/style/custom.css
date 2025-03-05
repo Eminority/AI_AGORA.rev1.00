@@ -17,7 +17,7 @@
 }
 
 html {
-    background: linear-gradient(to bottom, #ACA6C8, #DECBD0);
+    background: linear-gradient(to bottom, #ACA6C8, #ebe1db);
     background-attachment: fixed;
     /*스크롤해도 배경 고정*/
 }
@@ -112,6 +112,7 @@ body {
 
 #progress_list .card{
     background-color: rgba(0,0,0,0.15);
+    border-radius: 0px;
 }
 
 #progress_list .card .card-body{
@@ -128,4 +129,34 @@ body {
 .btn-custom-black-transparant{
     background-color: rgba(0,0,0,0.15);
     border: 1px solid #000;
+}
+
+.pos{
+    border-top-left-radius: 0px;
+    border-top-right-radius: 15px;
+    border-bottom-left-radius: 15px;
+    border-bottom-right-radius: 15px;
+    margin-left: 0px !important;
+    background-color: rgba(0, 0, 255, 0.05);
+}
+
+.pos .speaker{
+    color: rgb(0, 0, 200);
+}
+
+.neg{
+    border-top-left-radius: 15px;
+    border-top-right-radius: 0px;
+    border-bottom-left-radius: 15px;
+    border-bottom-right-radius: 15px;
+    margin-right: 0px !important;
+    background-color: rgba(255, 0, 0, 0.05);
+}
+
+.neg .speaker{
+    color: rgb(200, 0, 0);
+}
+
+.judge{
+    background-color: rgba(0, 0, 0, 0.05);
 }
