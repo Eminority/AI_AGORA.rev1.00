@@ -44,7 +44,7 @@ AI_API_KEY = json.loads(os.getenv("AI_API_KEY"))
 ai_factory = AI_Factory(AI_API_KEY)
 
 # 벡터스토어 핸들러 생성
-vectorstore_handler = VectorStoreHandler(chunk_size=500, chunk_overlap=50)
+vectorstore_handler = VectorStoreHandler(chunk_size=1024, chunk_overlap=64)
 
 
 # participant factory 인스턴스 초기화

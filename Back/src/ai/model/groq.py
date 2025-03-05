@@ -44,11 +44,18 @@ class GroqAPI(AI_Instance):
         if self.personality:
             full_prompt = f"personality: {self.personality}\n{user_prompt}"
 
+        # data = {
+        #     "model": self.model_name,          # 선택한 모델 ID
+        #     "prompt": full_prompt,              # 최종 프롬프트
+        #     "max_tokens": max_tokens,           # 생성할 최대 토큰 수
+        #     "temperature": temperature          # 온도 값
+        # }
+
         data = {
-            "model": self.model_name,          # 선택한 모델 ID
-            "prompt": full_prompt,              # 최종 프롬프트
-            "max_tokens": max_tokens,           # 생성할 최대 토큰 수
-            "temperature": temperature          # 온도 값
+            "model": self.model_name,
+            "messages": [{"role": "user", "content": full_prompt}],
+            "max_tokens": max_tokens,
+            "temperature": temperature
         }
 
         url = "https://api.groq.com/openai/v1/chat/completions"

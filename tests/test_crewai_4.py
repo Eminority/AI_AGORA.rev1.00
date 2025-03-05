@@ -16,7 +16,7 @@ llm = LLM(
     model = "gemini/gemini-1.5-flash",
     temperature=1,
     timeout = 60,
-    max_tokens = 500,
+    max_tokens = 5000,
     api_key = gemini_api_key
 )
 
@@ -32,21 +32,21 @@ class Create():
 
     @agent
     def agent_buffett(self) -> Agent:
-        return Agent(
-            # role = "{topic}에 대한 시장 분석",
-            # goal = "{topic}을 분석하고 요약하여 간단한 시장성 분석 결과 제시",
-            # backstory = "당신은 주어진 아이디어를 분석하고 요약하는 미국 월가의 워렌 버핏이다.",
-            # system_template = "당신은 워렛 버핏이 되어 {topic}에 대한 시장성 분석을 실시하여 그 결과를 요약하고 간단히 보고합니다. 보고서의 형식을 지키는 것이 권장됩니다.", 
-            # response_template = 
-            #     """
-            #     {{ .Response }}  
-            #     **시장성 분석 결과** 
-            #     1. \n
-            #     2. \n
-            #     3.
-            #     """,
-            # prompt_template = "당신은 워렛 버핏이 되어 {topic}에 대한 시장성 분석을 실시하여 그 결과를 요약하고 간단히 보고합니다. 보고서의 형식을 지키는 것이 권장됩니다.",
-            config = self.agents_config['agent_buffett'],
+        return Agent( 
+            role = "'CrewAI를 사용한 Multi ai agent 기술 구현'에 대한 시장 분석",
+            goal = "'CrewAI를 사용한 Multi ai agent 기술 구현'을 분석하고 요약하여 간단한 시장성 분석 결과 제시",
+            backstory = "당신은 주어진 아이디어를 분석하고 요약하는 미국 월가의 워렌 버핏이다.",
+            system_template = "당신은 워렛 버핏입니다. 'CrewAI를 사용한 Multi ai agent 기술 구현'에 대한 시장성 분석을 실시하여 그 결과를 요약하고 간단히 보고합니다. 보고서의 형식을 지키는 것이 권장됩니다. 반드시 한국어로 발언하십시오.", 
+            response_template = 
+                """
+                {{ .Response }}  
+                **시장성 분석 결과** 
+                1. \n
+                2. \n
+                3.
+                """,
+            prompt_template = "당신은 워렛 버핏입니다. 'CrewAI를 사용한 Multi ai agent 기술 구현'에 대한 시장성 분석을 실시하여 그 결과를 요약하고 간단히 보고합니다. 보고서의 형식을 지키는 것이 권장됩니다. 반드시 한국어로 발언하십시오.",
+            # config = self.agents_config['agent_buffett'],
             verbose = True,
             max_execution_time = 120, 
             allow_delegation = False, 
@@ -55,22 +55,22 @@ class Create():
     @agent
     def agent_gates(self) -> Agent:
         return Agent(
-            # role = "{topic}에 대한 기술적 분석",
-            # goal = "{topic}을 분석하고 요약하여 간단한 기술적 분석 결과 제시",
-            # backstory = "당신은 주어진 아이디어를 분석하고 요약하는 마이크로소프트의 창업주 빌 게이츠이다.",
-            # system_template = "당신은 빌게이츠가 되어 {topic}에 대한 기술적 분석을 실시하여 그 결과를 요약하고 간단히 보고합니다. 보고서의 형식을 지키는 것이 권장됩니다.",
-            # response_template = 
-            #     """
-            #     {{ .Response }}  
-            #     **기술적 분석 결과** 
-            #     1. \n
-            #     2. \n
-            #     3.
-            #     """,
-            # prompt_template = """
-            #     당신은 빌게이츠가 되어 {topic}에 대한 기술적 분석을 실시하여 그 결과를 요약하고 간단히 보고합니다. 보고서의 형식을 지키는 것이 권장됩니다.
-            #     """,
-            config = self.agents_config['agent_gates'],
+            role = "'CrewAI를 사용한 Multi ai agent 기술 구현'에 대한 기술적 분석",
+            goal = "'CrewAI를 사용한 Multi ai agent 기술 구현'을 분석하고 요약하여 간단한 기술적 분석 결과 제시",
+            backstory = "당신은 주어진 아이디어를 분석하고 요약하는 마이크로소프트의 창업주 빌 게이츠이다.",
+            system_template = "당신은 빌게이츠입니다. 'CrewAI를 사용한 Multi ai agent 기술 구현'에 대한 기술적 분석을 실시하여 그 결과를 요약하고 간단히 보고합니다. 보고서의 형식을 지키는 것이 권장됩니다. 반드시 한국어로 발언하십시오.",
+            response_template = 
+                """
+                {{ .Response }}  
+                **기술적 분석 결과** 
+                1. \n
+                2. \n
+                3.
+                """,
+            prompt_template = """
+                당신은 빌게이츠입니다. 'CrewAI를 사용한 Multi ai agent 기술 구현'에 대한 기술적 분석을 실시하여 그 결과를 요약하고 간단히 보고합니다. 보고서의 형식을 지키는 것이 권장됩니다. 반드시 한국어로 발언하십시오.
+                """,
+            # config = self.agents_config['agent_gates'],
             verbose = True,
             max_execution_time = 120, 
             allow_delegation = False, 
@@ -79,20 +79,20 @@ class Create():
     @agent
     def agent_edison(self) -> Agent:
         return Agent(
-            # role = "{topic}에 대한 아이디어 개선",
-            # goal = "{topic}의 아이디어를 분석하여 개선된 아이디어를 떠올림.",
-            # backstory = "당신은 주어진 아이디어를 개선하는 발명왕 에디슨이다.",
-            # system_template = "당신은 에디슨이 되어 {topic}에 대한 개선된 아이디어를 도출하고 그 결과를 요약하고 간단히 보고합니다. 보고서의 형식을 지키는 것이 권장됩니다.",
-            # response_template = 
-            #     """
-            #     {{ .Response }}  
-            #     **아이디어 개선 결과** 
-            #     1. \n
-            #     2. \n
-            #     3.
-            #     """,
-            # prompt_template = "당신은 에디슨이 되어 {topic}에 대한 개선된 아이디어를 도출하고 그 결과를 요약하고 간단히 보고합니다. 보고서의 형식을 지키는 것이 권장됩니다.",
-            config = self.agents_config['agent_edison'],
+            role = "'CrewAI를 사용한 Multi ai agent 기술 구현'에 대한 아이디어 개선",
+            goal = "'CrewAI를 사용한 Multi ai agent 기술 구현'의 아이디어를 분석하여 개선된 아이디어를 떠올림.",
+            backstory = "당신은 주어진 아이디어를 개선하는 발명왕 에디슨이다.",
+            system_template = "당신은 에디슨입니다. 'CrewAI를 사용한 Multi ai agent 기술 구현'에 대한 개선된 아이디어를 도출하고 그 결과를 요약하고 간단히 보고합니다. 보고서의 형식을 지키는 것이 권장됩니다. 반드시 한국어로 발언하십시오.",
+            response_template = 
+                """
+                {{ .Response }}  
+                **아이디어 개선 결과** 
+                1. \n
+                2. \n
+                3.
+                """,
+            prompt_template = "당신은 에디슨입니다. 'CrewAI를 사용한 Multi ai agent 기술 구현'에 대한 개선된 아이디어를 도출하고 그 결과를 요약하고 간단히 보고합니다. 보고서의 형식을 지키는 것이 권장됩니다. 반드시 한국어로 발언하십시오.",
+            # config = self.agents_config['agent_edison'],
             verbose = True,
             max_execution_time = 120, 
             allow_delegation = False, 
@@ -101,20 +101,20 @@ class Create():
     @agent
     def agent_sejong(self) -> Agent:
         return Agent(
-            # role = "{topic}에 대한 요약, 각 agent의 task 결과를 종합",
-            # goal = "{topic}을 분석하고 요약, 각 agent의 task 결과 종합 보고서",
-            # backstory = "당신은 주어진 아이디어를 요약하고 agent들의 업무를 통합하여 정리하는 대한민국의 성군 세종대왕이다.",
-            # system_template = "당신은 세종대왕이 되어 {topic}을 요약하고 간단히 보고합니다. 보고서의 형식을 지키는 것이 권장됩니다.",
-            # response_template = 
-            #     """
-            #     {{ .Response }}  
-            #     **요약 결과** 
-            #     1. \n
-            #     2. \n
-            #     3.
-            #     """,
-            # prompt_template = "당신은 세종대왕이 되어 {topic}을 요약하고 간단히 보고합니다. 보고서의 형식을 지키는 것이 권장됩니다.",
-            config = self.agents_config['agent_sejong'],
+            role = "'CrewAI를 사용한 Multi ai agent 기술 구현'에 대한 요약, 각 agent의 task 결과를 종합",
+            goal = "'CrewAI를 사용한 Multi ai agent 기술 구현'을 분석하고 요약, 각 agent의 task 결과 종합 보고서",
+            backstory = "당신은 주어진 아이디어를 요약하고 agent들의 업무를 통합하여 정리하는 대한민국의 성군 세종대왕이다.",
+            system_template = "당신은 세종대왕입니다. 'CrewAI를 사용한 Multi ai agent 기술 구현'을 요약하고 간단히 보고합니다. 보고서의 형식을 지키는 것이 권장됩니다. 반드시 한국어로 발언하십시오.",
+            response_template = 
+                """
+                {{ .Response }}  
+                **요약 결과** 
+                1. \n
+                2. \n
+                3.
+                """,
+            prompt_template = "당신은 세종대왕입니다. 'CrewAI를 사용한 Multi ai agent 기술 구현'을 요약하고 간단히 보고합니다. 보고서의 형식을 지키는 것이 권장됩니다. 반드시 한국어로 발언하십시오.",
+            # config = self.agents_config['agent_sejong'],
             verbose = True,
             max_execution_time = 120, 
             allow_delegation = False, 
