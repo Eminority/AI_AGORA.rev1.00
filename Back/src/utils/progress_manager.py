@@ -66,17 +66,17 @@ class ProgressManager:
                                         "img" : None,
                                         "object_attribute": ""}
             if not participant.get("judge_1"):
-                participant["judge"] = {"name"  : "judge",
+                participant["judge_1"] = {"name"  : "judge_1",
                                         "ai"    : "GEMINI",
                                         "img" : None,
                                         "object_attribute": ""}
             if not participant.get("judge_2"):
-                participant["judge"] = {"name"  : "judge",
+                participant["judge_2"] = {"name"  : "judge_2",
                                         "ai"    : "GEMINI",
                                         "img" : None,
                                         "object_attribute": ""}
             if not participant.get("judge_3"):
-                participant["judge"] = {"name"  : "judge",
+                participant["judge_3"] = {"name"  : "judge_3",
                                         "ai"    : "GEMINI",
                                         "img" : None,
                                         "object_attribute": ""}                                 

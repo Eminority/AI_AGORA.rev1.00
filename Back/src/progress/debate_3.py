@@ -111,21 +111,21 @@ class Debate_3(Progress):
         self.judge_logical_parser = StructuredOutputParser.from_response_schemas([
             ResponseSchema(name="logicality_pos", description="찬성측 논리성 평가 점수"),
             ResponseSchema(name="logicality_neg", description="반대측 논리성 평가 점수"),
-            ResponseSchema(name="message", description="논리 평가 메시지")
+            # ResponseSchema(name="message", description="논리 평가 메시지")
         ])
 
         # judge_2 전용: 반론 평가 파서
         self.judge_rebuttal_parser = StructuredOutputParser.from_response_schemas([
             ResponseSchema(name="rebuttal_pos", description="찬성측 반론 평가 점수"),
             ResponseSchema(name="rebuttal_neg", description="반대측 반론 평가 점수"),
-            ResponseSchema(name="message", description="반론 평가 메시지")
+            # ResponseSchema(name="message", description="반론 평가 메시지")
         ])
 
         # judge_3 전용: 설득력 평가 파서
         self.judge_persuasion_parser = StructuredOutputParser.from_response_schemas([
             ResponseSchema(name="persuasion_pos", description="찬성측 설득력 평가 점수"),
             ResponseSchema(name="persuasion_neg", description="반대측 설득력 평가 점수"),
-            ResponseSchema(name="message", description="설득력 평가 메시지")
+            # ResponseSchema(name="message", description="설득력 평가 메시지")
         ])
         
         self.next_speaker_candidate_prompt = PromptTemplate(
@@ -146,13 +146,36 @@ class Debate_3(Progress):
         )
 
         self.claim_prompt = PromptTemplate(
-            input_variables=["topic", "position"],
+            input_variables=["topic", "position", "persona"],
             template="""
-            [SYSTEM: 당신은 토론 참가자입니다. 역할은 자신의 주장을 처음으로 제시하는 것입니다.]
-            당신은 "{topic}" 토론에 참여하고 있습니다.
-            이번 라운드에서는 자신의 주장을 처음으로 제시해 주세요.
-            당신의 입장은 **{position}**입니다.
-            주요 근거와 함께 자신의 주장을 명확하게 기술해 주세요.
+            [SYSTEM: 당신은 {topic} 주제에 대한 토론 참여하고 있습니다. 당신의 역할은 이 주장에 {position} 입장에서 논증하는 것입니다.]
+            ### **진행 방식:**  
+            - **반드시 한국어로만 말해야 합니다.**  
+            - 주제에 대한 **{position}의 입장을 명확하게 제시**하세요.  
+            - {position}의 이유를 뒷받침할 **세 가지 이상의 강력한 논거**를 제시하세요.  
+            - **논리적 근거, 현실 사례, 데이터** 등을 활용하여 주장을 강화하세요.  
+            - 주제에 대한 일반적인 설명은 피하고, 오직 {position} 입장을 옹호하는 데 집중하세요.  
+
+            ---
+
+            ### **응답 형식:**  
+
+            1. **주요 논거 #1**  
+            - 설명  
+            - 근거 또는 예시  
+
+            2. **주요 논거 #2**  
+            - 설명  
+            - 근거 또는 예시  
+
+            3. **주요 논거 #3**  
+            - 설명  
+            - 근거 또는 예시  
+
+            간결하면서도 설득력 있게 작성하세요. 적용 가능한 경우, 사실적 근거를 제공하세요.
+            
+            당신의 주장에서 독특한 특징을 강조하세요. {persona}의 관점에서 생각해 보세요.
+
             반드시 JSON 형식으로 응답하세요:
             ```json
             {{
@@ -164,24 +187,52 @@ class Debate_3(Progress):
         )
 
         self.argument_prompt = PromptTemplate(
-            input_variables=["topic", "position", "opponent_statements"],
-            template="""
-            [SYSTEM: 당신은 토론 참가자입니다. 역할은 상대의 주장을 반박하는 것입니다.]
-            당신은 "{topic}" 토론에 참여하고 있습니다.
-            당신의 입장은 **{position}**입니다.
-            상대측의 주장:
-            {opponent_statements}
-            위 내용을 바탕으로 논리적인 근거와 예시를 들어 반박해 주세요.
-            또한 응답 시 형식화 된 구조로 작성하세요. 첫째, 둘째, 셋째 등으로 주장을 나누는 방법이 바람직합니다.
+            input_variables=["topic", "position", "opponent_statements", "last_opp_statements", "persona"],
+            template="""  
+            [SYSTEM: 당신은 {topic} 주제에 대한 토론에 참여하고 있습니다. 역할은 {position}의 입장에서 상대의 주장을 반박하는 것입니다.]
+            ### **진행 방식:**  
+            - **반드시 한국어로만 말해야 합니다.**  
+            - 상대 측의 전체 발언 내역: {opponent_statements}  
+            - 특히, **가장 최근의 발언 {last_opp_statements}**을 참고하여 이에 대한 **논리적인 반박**을 제시하세요.  
+            - 상대 측의 **핵심 논점을 직접적으로 반박**하세요.  
+            - **근거, 논리적 추론, 현실 사례**를 활용하여 상대 주장을 논파하세요.  
+            - 새로운 {position} 측 논거를 도입하지 말고, 오직 상대방의 주장을 반박하는 데 집중하세요.  
+
+            ---  
+
+            ### **응답 형식:**  
+
+            "상대 측의 주장을 면밀히 검토해 보았지만, 다음과 같은 이유로 반박하고자 합니다.  
+
+            1. **첫 번째 반박:**  
+            - {last_opp_statements} 요약: "[상대방 주장 요약]"  
+            - 논리적 반박: "[이 주장이 왜 논리적으로 문제가 있는지]"  
+            - 근거 또는 예시: "[현실 사례 또는 논리적 근거]"  
+
+            2. **두 번째 반박:**  
+            - {last_opp_statements} 요약: "[상대방 주장 요약]"  
+            - 논리적 반박: "[이 주장이 왜 논리적으로 문제가 있는지]"  
+            - 근거 또는 예시: "[현실 사례 또는 논리적 근거]"  
+
+            3. **세 번째 반박:**  
+            - {last_opp_statements} 요약: "[상대방 주장 요약]"  
+            - 논리적 반박: "[이 주장이 왜 논리적으로 문제가 있는지]"  
+            - 근거 또는 예시: "[현실 사례 또는 논리적 근거]"  
+
+            이러한 이유로 {last_opp_statements}은 그리 강력하지 않습니다."  
+
+            **토론 주제:** {topic}  
+            **전체 상대 발언:** {opponent_statements}  
+            **이전 상대 발언:** {last_opp_statements}
+
+            당신의 주장에서 독특한 특징을 강조하세요. {persona}의 관점에서 생각해 보세요.
+
             반드시 JSON 형식으로 응답하세요:
             ```json
-            {{
-                "speaker": "{position}",
-                "message": "..."
-            }}
-            ```
+            {{"speaker": "{position}", "message": "..."}}
+            ```  
             """
-        )
+)
 
         self.judge_prompt = PromptTemplate(
             input_variables=["topic", "pos_statements", "neg_statements"],
@@ -212,7 +263,24 @@ class Debate_3(Progress):
         self.judge_logical_prompt = PromptTemplate(
             input_variables=["topic", "pos_statements", "neg_statements"],
             template="""
-            [SYSTEM: 당신은 논리 분석 전문가입니다. 아래의 찬성측과 반대측 발언을 비교하여 각 측의 논리적 일관성과 타당성을 평가하세요.
+            [SYSTEM: 당신은 논리 분석 전문가입니다. 아래의 찬성측과 반대측 발언을 상호 비교하여 **논리적 타당성을 100점 척도로 평가**하는 것이 당신의 역할입니다.]
+            
+            ### **전문가로서의 역할:**  
+            - 당신은 논리적 일관성, 논증 구조, 논거의 강도를 평가하는 데 뛰어난 분석가입니다.  
+            - **편견 없이, 논리적 근거만을 기준으로 평가**합니다.  
+            - 체계적인 접근 방식을 통해 논리적 강점과 약점을 식별합니다.  
+
+            ### **평가 기준:**  
+            - 논증이 **일관되고 논리적으로 구조화**되어 있는가?  
+            - **논리적 오류**(흑백논리, 순환논법, 논점 일탈 등)를 피하고 있는가?  
+            - **충분한 근거를 제공**하며, 논리적 약점이 최소화되어 있는가?  
+
+            ### **작업 지침:**  
+            1. 각 글을 분석하고 **논리적으로 강한 부분**을 식별하세요.  
+            2. **논리적 오류나 약점**이 있다면 구체적으로 지적하세요.  
+            3. 분석을 **명확하고 간결하게 요약**하세요.  
+            4. 최종적으로 **점수를 포함한 평가 결과**를 제공하세요.  
+
             주제: "{topic}"
             **찬성측 (Pos):**
             {pos_statements}
@@ -224,7 +292,6 @@ class Debate_3(Progress):
             {{
                 "logicality_pos": <점수>,
                 "logicality_neg": <점수>,
-                "message": "논리 평가 완료"
             }}
             ```"""
         )
@@ -233,7 +300,25 @@ class Debate_3(Progress):
         self.judge_rebuttal_prompt = PromptTemplate(
             input_variables=["topic", "pos_rebuttal", "neg_rebuttal"],
             template="""
-            [SYSTEM: 당신은 반론 분석 전문가입니다. 아래의 찬성측과 반대측 반론을 비교하여 각 측의 반론 효과성을 평가하세요.
+            [SYSTEM: 당신은 반론 분석 전문가입니다. 아래의 찬성측과 반대측 반론을 상호 비교하여 **반박의 강도를 100점 척도로 평가**하는 것이 당신의 역할입니다.]
+            
+            ### **전문가로서의 역할:**  
+            - 당신은 **반박 논거의 효과성**과 **논리적 반박의 강도**를 평가하는 데 전문성을 갖추고 있습니다.  
+            - **객관적인 논리적 엄밀성을 바탕으로 공정하게 평가**합니다.  
+            - 반박의 강점과 약점을 체계적으로 분석합니다.  
+
+            ### **평가 기준:**  
+            - 반박이 상대의 주장을 **직접적으로 반박하며 논파하는가?**  
+            - **타당한 논리, 일관된 사고, 강력한 근거**를 활용하고 있는가?  
+            - **허수아비 논법, 논점 일탈, 논리적 왜곡** 등의 오류를 피하고 있는가?  
+            - 반박이 **명확하고 설득력 있게 구성**되어 있는가?  
+
+            ### **작업 지침:**  
+            1. 각 반박문의 **강점과 효과적인 논리적 반박 요소**를 분석하세요.  
+            2. **논리적 약점이나 오류**가 있다면 명확히 지적하세요.  
+            3. 반박의 **전반적인 효과성과 상대 주장을 얼마나 효과적으로 반박했는지** 요약하세요.  
+            4. 최종적으로 **100점 척도의 반박 강도 점수를 포함한 평가**를 제공하세요.  
+
             주제: "{topic}"
             **찬성측 반론:**
             {pos_rebuttal}
@@ -245,28 +330,45 @@ class Debate_3(Progress):
             {{
                 "rebuttal_pos": <점수>,
                 "rebuttal_neg": <점수>,
-                "message": "반론 평가 완료"
             }}
             ```"""
         )
 
         # 추가된 심판 프롬프트: 설득력 평가 (judge_3)
         self.judge_persuasion_prompt = PromptTemplate(
-            input_variables=["topic", "pos_statements", "neg_statements", "pos_rebuttal", "neg_rebuttal"],
+            input_variables=["topic", "pos_statements", "neg_statements"],
             template="""
-            [SYSTEM: 당신은 설득력 평가 전문가입니다. 아래의 찬성측과 반대측 발언을 비교하여 각 측의 설득력을 평가하세요.
+            [SYSTEM: 당신은 설득력 평가 전문가입니다. 아래의 찬성측과 반대측 발언을 비교하여 **설득력을 100점 척도로 평가**하는 것이 당신의 역할입니다.]
+            
+            ### **전문가로서의 역할:**  
+            - 당신은 **논증의 설득력**을 평가하는 데 전문성을 갖추고 있습니다.  
+            - **논리적 타당성과 수사적(설득적) 효과**를 모두 고려하여 분석합니다.  
+            - **체계적인 분석을 바탕으로 객관적으로 평가**하며, 편향되지 않은 결론을 도출합니다.  
+
+            ### **평가 기준:**  
+            - **명확성 & 일관성**: 주장이 명확하고 구조적으로 잘 정리되어 있는가?  
+            - **논리적 타당성**: 논증이 논리적으로 타당하며 오류가 없는가?  
+            - **근거 활용**: 데이터, 사례, 신뢰할 만한 출처를 효과적으로 활용하는가?  
+            - **수사적 & 감성적 설득력**: 설득 전략을 효과적으로 활용하는가?  
+            - **반론 대응력**: 예상되는 반박을 미리 고려하고 효과적으로 대응하는가?  
+
+            ### **작업 지침:**  
+            1. 각 글의 **설득력 있는 요소**를 분석하고 강조하세요.  
+            2. **설득력의 약점 또는 부족한 부분**을 지적하세요.  
+            3. 글이 **청중을 얼마나 효과적으로 설득하는지** 요약하세요.  
+            4. 최종적으로 **100점 척도의 설득력 점수를 포함한 평가**를 제공하세요.  
+            
             주제: "{topic}"
             **찬성측 (Pos):**
-            {pos_statements}, {pos_rebuttal}
+            {pos_statements}
             **반대측 (Neg):**
-            {neg_statements}, {neg_rebuttal}
+            {neg_statements}
 
             각 측의 설득력을 100점 만점으로 평가하여, 아래 JSON 형식으로 응답하세요:
             ```json
             {{
                 "persuasion_pos": <점수>,
                 "persuasion_neg": <점수>,
-                "message": "설득력 평가 완료"
             }}
             ```"""
         )
@@ -294,10 +396,10 @@ class Debate_3(Progress):
         )
 
         self.progress_round_prompt = PromptTemplate(
-            input_variables=["evaluation", "pos_time", "neg_time"],
+            input_variables=["pos_time", "neg_time"],
             template="""
-            [SYSTEM: 당신은 토론 진행자입니다. 역할은 이전 라운드 평가 결과와 남은 발언 시간을 전달하는 것입니다. 참가자로서 발언하지 마십시오.]
-            이번 라운드 평가 결과 {evaluation}를 요약해서 전달하세요.
+            [SYSTEM: 당신은 토론 진행자입니다. 남은 발언 시간을 전달하는 것입니다. 참가자로서 발언하지 마십시오.]
+            
             남은 발언 시간: 찬성 {pos_time:.2f}초, 반대 {neg_time:.2f}초.
             """
         )
@@ -341,17 +443,22 @@ class Debate_3(Progress):
         except OutputParserException:
             next_speaker = "neg" if not is_final else "judge"
             message = f"Defaulting to {next_speaker}."
-        self.memory_manager.save_message("System", f"Next speaker decided: {next_speaker}. {message}")
+        # self.memory_manager.save_message("System", f"Next speaker decided: {next_speaker}. {message}")
         return {"speaker": next_speaker, "message": message}
 
     def debate_turn(self, speaker: str, round_number: int) -> dict:
         if round_number == 1:
-            prompt = self.claim_prompt.format(topic=self.data["topic"], position=speaker)
+            prompt = self.claim_prompt.format(topic=self.data["topic"], position=speaker, persona = self.data["participants"][speaker]["name"])
         else:
             opponent = "neg" if speaker.lower() == "pos" else "pos"
             opp_msgs = self.memory_manager.load_by_speaker(opponent)
             opponent_statements = "\n".join([f"[Round {msg['round']}] {msg['message']}" for msg in opp_msgs])
-            prompt = self.argument_prompt.format(topic=self.data["topic"], position=speaker, opponent_statements=opponent_statements)
+            if opp_msgs:
+                last_opp_statements = f"[Round {opp_msgs[-1]['round']}] {opp_msgs[-1]['message']}"
+            else:
+                last_opp_statements = ""
+            prompt = self.argument_prompt.format(topic=self.data["topic"], position=speaker, opponent_statements=opponent_statements,
+                                                 last_opp_statements=last_opp_statements, persona = self.data["participants"][speaker]["name"])
         result_text = self.generate_text(speaker, prompt)
         try:
             parsed = self.output_parser.parse(result_text)
@@ -374,7 +481,7 @@ class Debate_3(Progress):
         pos_rebuttal = "\n".join([f"[Round {msg['round']}] {msg['message']}" for msg in pos_rebuttals])
         neg_rebuttal = "\n".join([f"[Round {msg['round']}] {msg['message']}" for msg in neg_rebuttals])
 
-        # 논리 평가 (judge_1 사용)
+        # judge_1: 논리 평가
         prompt_logical = self.judge_logical_prompt.format(
             topic=self.data["topic"],
             pos_statements=pos_statements,
@@ -382,11 +489,11 @@ class Debate_3(Progress):
         )
         result_logical_text = self.generate_text("judge_1", prompt_logical)
         try:
-            result_logical = json.loads(result_logical_text)
+            parsed_logical = self.judge_logical_parser.parse(result_logical_text)
         except Exception:
-            result_logical = {"logicality_pos": 0, "logicality_neg": 0, "message": "논리 평가 파싱 실패"}
+            parsed_logical = {"logicality_pos": 0, "logicality_neg": 0, "message": "논리 평가 파싱 실패"}
 
-        # 반론 평가 (judge_2 사용)
+        # judge_2: 반론 평가
         prompt_rebuttal = self.judge_rebuttal_prompt.format(
             topic=self.data["topic"],
             pos_rebuttal=pos_rebuttal,
@@ -394,36 +501,34 @@ class Debate_3(Progress):
         )
         result_rebuttal_text = self.generate_text("judge_2", prompt_rebuttal)
         try:
-            result_rebuttal = json.loads(result_rebuttal_text)
+            parsed_rebuttal = self.judge_rebuttal_parser.parse(result_rebuttal_text)
         except Exception:
-            result_rebuttal = {"rebuttal_pos": 0, "rebuttal_neg": 0, "message": "반론 평가 파싱 실패"}
+            parsed_rebuttal = {"rebuttal_pos": 0, "rebuttal_neg": 0, "message": "반론 평가 파싱 실패"}
 
-        # 설득력 평가 (judge_3 사용)
+        # judge_3: 설득력 평가
         prompt_persuasion = self.judge_persuasion_prompt.format(
             topic=self.data["topic"],
             pos_statements=pos_statements,
-            neg_statements=neg_statements,
-            pos_rebuttal=pos_rebuttal,    
-            neg_rebuttal=neg_rebuttal
+            neg_statements=neg_statements
         )
         result_persuasion_text = self.generate_text("judge_3", prompt_persuasion)
         try:
-            result_persuasion = json.loads(result_persuasion_text)
+            parsed_persuasion = self.judge_persuasion_parser.parse(result_persuasion_text)
         except Exception:
-            result_persuasion = {"persuasion_pos": 0, "persuasion_neg": 0, "message": "설득력 평가 파싱 실패"}
+            parsed_persuasion = {"persuasion_pos": 0, "persuasion_neg": 0, "message": "설득력 평가 파싱 실패"}
 
-        logicality_pos = int(result_logical.get("logicality_pos", 0))
-        logicality_neg = int(result_logical.get("logicality_neg", 0))
-        rebuttal_pos = int(result_rebuttal.get("rebuttal_pos", 0))
-        rebuttal_neg = int(result_rebuttal.get("rebuttal_neg", 0))
-        persuasion_pos = int(result_persuasion.get("persuasion_pos", 0))
-        persuasion_neg = int(result_persuasion.get("persuasion_neg", 0))
+        logicality_pos = int(parsed_logical.get("logicality_pos", 0))
+        logicality_neg = int(parsed_logical.get("logicality_neg", 0))
+        rebuttal_pos = int(parsed_rebuttal.get("rebuttal_pos", 0))
+        rebuttal_neg = int(parsed_rebuttal.get("rebuttal_neg", 0))
+        persuasion_pos = int(parsed_persuasion.get("persuasion_pos", 0))
+        persuasion_neg = int(parsed_persuasion.get("persuasion_neg", 0))
 
         # 가중치 적용하여 최종 점수 계산
         match_pos = logicality_pos * 0.4 + rebuttal_pos * 0.35 + persuasion_pos * 0.25
         match_neg = logicality_neg * 0.4 + rebuttal_neg * 0.35 + persuasion_neg * 0.25
 
-        # 결과 저장: pos와 neg 중 어느 쪽이 이겼는지
+        # 결과 저장
         if match_pos:
             if match_pos > match_neg:
                 self.data["result"] = "positive"
@@ -434,7 +539,6 @@ class Debate_3(Progress):
         else:
             self.data["result"] = "draw"
 
-        # score 필드에 평가 점수 저장
         self.data["score"] = {
             "logicality_pos": logicality_pos,
             "logicality_neg": logicality_neg,
@@ -446,14 +550,10 @@ class Debate_3(Progress):
             "match_neg": match_neg
         }
 
-        # self.memory_manager.save_message("judge", f"논리 평가 결과: {result_logical.get('message', '')}")
-        # self.memory_manager.save_message("judge", f"반론 평가 결과: {result_rebuttal.get('message', '')}")
-        # self.memory_manager.save_message("judge", f"설득력 평가 결과: {result_persuasion.get('message', '')}")
         self.data["debate_log"] = self.memory_manager.load_all()
-
         self.data["status"]["type"] = "end"
 
-        return  self.data["result"]
+        return self.data["result"]
             
 
 
@@ -470,6 +570,8 @@ class Debate_3(Progress):
         debate["topic"] = self.data["topic"]
         debate["status"]["step"] = self.memory_manager.current_round
 
+
+
         pos_time_remaining = 20.0
         neg_time_remaining = 20.0
 
@@ -482,14 +584,11 @@ class Debate_3(Progress):
         round_number = 1
         max_round = 10  # 최대 라운드 수
         while round_number <= max_round:
-            print(f"=== Round {round_number} 시작 ===")
             if round_number == 1:
                 prompt = self.progress_round1_prompt.format(topic=self.data["topic"])
                 prog_text = self.generate_text("progress_agent", prompt)
             else:
-                prompt = self.progress_round_prompt.format(evaluation="이전 라운드 평가 참고", 
-                                                           pos_time=pos_time_remaining, 
-                                                           neg_time=neg_time_remaining)
+                prompt = self.progress_round_prompt.format(pos_time=pos_time_remaining, neg_time=neg_time_remaining)
                 prog_text = self.generate_text("progress_agent", prompt)
             print(prog_text)
             self.memory_manager.save_message("Progress", prog_text)
@@ -506,7 +605,7 @@ class Debate_3(Progress):
                     neg_time_remaining -= duration
             if pos_time_remaining <= 0 or neg_time_remaining <= 0:
                 final_spk = self.next_speaker(is_final=True)
-                self.memory_manager.save_message("Progress", final_spk["message"])
+                # self.memory_manager.save_message("Progress", final_spk["message"])
                 break
 
             round_number += 1

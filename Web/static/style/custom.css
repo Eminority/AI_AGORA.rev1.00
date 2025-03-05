@@ -17,7 +17,7 @@
 }
 
 html {
-    background: linear-gradient(to bottom, #ACA6C8, #DECBD0);
+    background: linear-gradient(to bottom, #ACA6C8, #ebe1db);
     background-attachment: fixed;
     /*스크롤해도 배경 고정*/
 }
@@ -61,7 +61,7 @@ body {
 
 .create-button {
     width: 100%;
-    height: 150px;
+    height: 120px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -69,6 +69,7 @@ body {
     color: #FFFFFF;
     border-radius: 12px;
     cursor: pointer;
+    border: 2px solid #2e245c;
 }
 
 .object-detect-upload {
@@ -111,6 +112,7 @@ body {
 
 #progress_list .card{
     background-color: rgba(0,0,0,0.15);
+    border-radius: 0px;
 }
 
 #progress_list .card .card-body{
@@ -122,4 +124,39 @@ body {
 
 #progress_list a{
     color:#FFFFFF;
+}
+
+.btn-custom-black-transparant{
+    background-color: rgba(0,0,0,0.15);
+    border: 1px solid #000;
+}
+
+.pos{
+    border-top-left-radius: 0px;
+    border-top-right-radius: 15px;
+    border-bottom-left-radius: 15px;
+    border-bottom-right-radius: 15px;
+    margin-left: 0px !important;
+    background-color: rgba(0, 0, 255, 0.05);
+}
+
+.pos .speaker{
+    color: rgb(0, 0, 200);
+}
+
+.neg{
+    border-top-left-radius: 15px;
+    border-top-right-radius: 0px;
+    border-bottom-left-radius: 15px;
+    border-bottom-right-radius: 15px;
+    margin-right: 0px !important;
+    background-color: rgba(255, 0, 0, 0.05);
+}
+
+.neg .speaker{
+    color: rgb(200, 0, 0);
+}
+
+.judge{
+    background-color: rgba(0, 0, 0, 0.05);
 }
