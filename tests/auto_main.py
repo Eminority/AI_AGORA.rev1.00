@@ -5,7 +5,7 @@ from pathlib import Path
 project_root = Path(__file__).resolve().parent.parent
 sys.path.append(str(project_root))
 
-
+import traceback
 
 import os
 import yaml
@@ -72,50 +72,60 @@ if __name__ == "__main__":
                                         generate_text_config=config["generate_text_config"])
     
     random_selector = RandomSelect(MONGO_URI, DB_NAME)
-    random_docs = random_selector.GetRandomName(count = 2)
-    random_selector.close_connection()
 
-    if len(random_docs) < 2 :
-        print("문서가 충분하지 않습니다")
-        sys.exit(0)
-
-    pos_doc, neg_doc = random_docs
-
-    pos = {
-        "_id": str(pos_doc["_id"]),  # _id를 문자열로 변환
-        "name": pos_doc.get("name", ""),
-        "ai": "GEMINI",
-        "object_attribute": pos_doc.get("object_attribute", ""),
-        "create_time": str(pos_doc.get("create_time", "")),
-        "img": pos_doc.get("img", None)
-        }
+    loopcount = int(input("자동으로 돌아갈 횟수 입력 :"))
 
 
-    neg = {
-        "_id": str(neg_doc["_id"]),
-        "name": neg_doc.get("name", ""),
-        "ai": "GEMINI",
-        "object_attribute": neg_doc.get("object_attribute", ""),
-        "create_time": str(neg_doc.get("create_time", "")),
-        "img": neg_doc.get("img", None)
-        }
-    
-    judge = {"ai": "GEMINI"}
-    next_speaker_agent = {"ai": "GEMINI"}
-    progress_agent = {"ai": "GEMINI"}
-    judge_1 = {"ai": "GEMINI"}
-    judge_2 ={"ai": "GEMINI"}
-    judge_3 = {"ai": "GEMINI"}
+    for _ in range(loopcount):
+        random_docs = random_selector.GetRandomName(count = 2)
 
-    participants = {"pos" : pos, "neg" : neg, "judge" : judge, "next_speaker_agent" : next_speaker_agent, "progress_agent" : progress_agent, "judge_1" : judge_1, "judge_2" : judge_2, "judge_3" : judge_3}
-    
-    topic = input("주제 입력 : ")
 
-    progress_manager.create_progress("debate", participant=participants, topic=topic)
+        if len(random_docs) < 2 :
+            print("문서가 충분하지 않습니다")
+            sys.exit(0)
 
-    debates = progress_manager.progress_pool.values()
+        pos_doc, neg_doc = random_docs
+
+        pos = {
+            "_id": str(pos_doc["_id"]),  # _id를 문자열로 변환
+            "name": pos_doc.get("name", ""),
+            "ai": "GEMINI",
+            "object_attribute": pos_doc.get("object_attribute", ""),
+            "create_time": str(pos_doc.get("create_time", "")),
+            "img": pos_doc.get("img", None)
+            }
+
+
+        neg = {
+            "_id": str(neg_doc["_id"]),
+            "name": neg_doc.get("name", ""),
+            "ai": "GEMINI",
+            "object_attribute": neg_doc.get("object_attribute", ""),
+            "create_time": str(neg_doc.get("create_time", "")),
+            "img": neg_doc.get("img", None)
+            }
+        
+        
+        judge = {"ai": "GEMINI", "name":"판사"}
+        next_speaker_agent = {"ai": "GEMINI", "name":"next_speaker_agent"}
+        progress_agent = {"ai": "GEMINI", "name":"progress_agent"}
+        judge_1 = {"ai": "GEMINI", "name":"judge_1"}
+        judge_2 = {"ai": "GEMINI", "name":"judge_2"}
+        judge_3 = {"ai": "GEMINI", "name":"judge_3"}
+
+        participants = {"pos" : pos, "neg" : neg, "judge" : judge, "next_speaker_agent" : next_speaker_agent, "progress_agent" : progress_agent, "judge_1" : judge_1, "judge_2" : judge_2, "judge_3" : judge_3}
+        
+        topic = progress_manager.auto_topic_create()
+        try:
+            progress_manager.create_progress("debate_2", participant=participants, topic=topic)
+        except Exception as e:
+            print(e)
+            traceback.print_exc()
+            break
+
     ###############################임시로 입력받는 테스트 코드
     
+    debates = progress_manager.progress_pool.values()
     
     ###############################임시로 실행하는 테스트 코드
     for debate in debates:
@@ -123,4 +133,5 @@ if __name__ == "__main__":
             result = debate.progress()
             print()
             print(f"{result['speaker']} : {result['message']}")
+        progress_manager.save(str(debate.data["_id"]))
     ###############################임시로 실행하는 테스트 코드

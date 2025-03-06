@@ -113,6 +113,8 @@ class ProgressManager:
         progress를 위해서 topic을 crawling해서 vectorstoring해서 vectorstore 반환
         """
         articles = self.web_scrapper.get_articles(topic=topic)
+        if not articles:
+            articles = [{"content" : "have no data"}]
         return self.vectorstore_handler.vectorstoring(articles=articles)
 
     def ready_to_progress_with_personality(self, topic, participants):
@@ -120,6 +122,8 @@ class ProgressManager:
         articles.extend(self.web_scrapper.get_articles(topic=topic))
         articles.extend(self.web_scrapper.get_articles(participants["pos"].name))
         articles.extend(self.web_scrapper.get_articles(participants["neg"].name))
+        if not articles:
+            articles = [{"content" : "have no data"}]
         return self.vectorstore_handler.vectorstoring(articles)
     
     def check_topic_for_debate(self, topic:str) -> bool:
@@ -245,7 +249,8 @@ class ProgressManager:
         
 
     def auto_topic_create(self) -> str:
-        user_prompt = "Return a single debate topic in one sentence. Keep it concise and argumentative. No extra details."
+        before_topics = [ progress.data["topic"] for progress in self.progress_pool.values()]
+        user_prompt = f"Return a single debate topic in one sentence. Keep it concise and argumentative. No extra details. Please think of a new topic. Last topics are {before_topics}. You should avoid {before_topics}"
         topic = self.topic_checker.generate_text(user_prompt,temperature=0.5,max_tokens=100)
         print(topic)
         return topic
