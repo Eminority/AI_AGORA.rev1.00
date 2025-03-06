@@ -236,7 +236,7 @@ class Debate_3(Progress):
 )
 
         self.judge_prompt = PromptTemplate(
-            input_variables=["topic", "pos_statements", "neg_statements"],
+            input_variables=["topic", "pos_statements", "neg_statements", "lo"],
             template="""
             [SYSTEM: 당신은 토론 심판입니다. 역할은 최종 판결을 내리는 것입니다.]
             주제: "{topic}"
@@ -558,6 +558,7 @@ class Debate_3(Progress):
         result_logical_text = self.generate_text("judge_1", prompt_logical)
         try:
             parsed_logical = self.judge_logical_parser.parse(result_logical_text)
+            self.data["judgement_reason"] += result_logical_text
         except Exception:
             parsed_logical = {"logicality_pos": 0, "logicality_neg": 0, "message": "논리 평가 파싱 실패"}
 
@@ -570,6 +571,7 @@ class Debate_3(Progress):
         result_rebuttal_text = self.generate_text("judge_2", prompt_rebuttal)
         try:
             parsed_rebuttal = self.judge_rebuttal_parser.parse(result_rebuttal_text)
+            self.data["judgement_reason"] += result_rebuttal_text
         except Exception:
             parsed_rebuttal = {"rebuttal_pos": 0, "rebuttal_neg": 0, "message": "반론 평가 파싱 실패"}
 
@@ -582,6 +584,7 @@ class Debate_3(Progress):
         result_persuasion_text = self.generate_text("judge_3", prompt_persuasion)
         try:
             parsed_persuasion = self.judge_persuasion_parser.parse(result_persuasion_text)
+            self.data["judgement_reason"] += result_persuasion_text
         except Exception:
             parsed_persuasion = {"persuasion_pos": 0, "persuasion_neg": 0, "message": "설득력 평가 파싱 실패"}
 
@@ -595,6 +598,8 @@ class Debate_3(Progress):
         # 가중치 적용하여 최종 점수 계산
         match_pos = logicality_pos * 0.4 + rebuttal_pos * 0.35 + persuasion_pos * 0.25
         match_neg = logicality_neg * 0.4 + rebuttal_neg * 0.35 + persuasion_neg * 0.25
+
+
 
         # 결과 저장
         if match_pos:
@@ -613,6 +618,8 @@ class Debate_3(Progress):
             self.data["judgement_reason"] += "\n\n반대 측 승리!"    
         else:
             self.data["judgement_reason"]+= "\n\n무승부"  
+
+
 
         self.data["score"] = {
             "logicality_pos": logicality_pos,
