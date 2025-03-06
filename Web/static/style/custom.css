@@ -209,3 +209,10 @@ body {
     animation: 1.5s linear infinite spinner-border;
 
 }
+
+.profile-info table{
+    border-width: 2px !important;
+}
+.profile-info td{
+    border-width: 2px !important;
+}
