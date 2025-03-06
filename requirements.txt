@@ -21,3 +21,4 @@ google
 googlesearch-python
 webserver
 duckduckgo-search
+python-multipart
