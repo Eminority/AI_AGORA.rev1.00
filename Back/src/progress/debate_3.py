@@ -296,34 +296,7 @@ class Debate_3(Progress):
             }}
             ```"""
         )
-        self.judge_logical_except_json_prompt = PromptTemplate(
-            input_variables=["topic", "pos_statements", "neg_statements"],
-            template="""
-            [SYSTEM: 당신은 논리 분석 전문가입니다. 아래의 찬성측과 반대측 발언을 상호 비교하여 **논리적 타당성을 100점 척도로 평가**하는 것이 당신의 역할입니다.]
-            
-            ### **전문가로서의 역할:**  
-            - 당신은 논리적 일관성, 논증 구조, 논거의 강도를 평가하는 데 뛰어난 분석가입니다.  
-            - **편견 없이, 논리적 근거만을 기준으로 평가**합니다.  
-            - 체계적인 접근 방식을 통해 논리적 강점과 약점을 식별합니다.  
 
-            ### **평가 기준:**  
-            - 논증이 **일관되고 논리적으로 구조화**되어 있는가?  
-            - **논리적 오류**(흑백논리, 순환논법, 논점 일탈 등)를 피하고 있는가?  
-            - **충분한 근거를 제공**하며, 논리적 약점이 최소화되어 있는가?  
-
-            ### **작업 지침:**  
-            1. 각 글을 분석하고 **논리적으로 강한 부분**을 식별하세요.  
-            2. **논리적 오류나 약점**이 있다면 구체적으로 지적하세요.  
-            3. 분석을 **명확하고 간결하게 요약**하세요.  
-            4. 최종적으로 **점수를 포함한 평가 결과**를 제공하세요.  
-
-            주제: "{topic}"
-            **찬성측 (Pos):**
-            {pos_statements}
-            **반대측 (Neg):**
-            {neg_statements}
-            """
-        )
         # 추가된 심판 프롬프트: 반론 평가 (judge_2)
         self.judge_rebuttal_prompt = PromptTemplate(
             input_variables=["topic", "pos_rebuttal", "neg_rebuttal"],
@@ -361,35 +334,7 @@ class Debate_3(Progress):
             }}
             ```"""
         )
-        self.judge_rebuttal_except_json_prompt = PromptTemplate(
-            input_variables=["topic", "pos_rebuttal", "neg_rebuttal"],
-            template="""
-            [SYSTEM: 당신은 반론 분석 전문가입니다. 아래의 찬성측과 반대측 반론을 상호 비교하여 **반박의 강도를 100점 척도로 평가**하는 것이 당신의 역할입니다.]
-            
-            ### **전문가로서의 역할:**  
-            - 당신은 **반박 논거의 효과성**과 **논리적 반박의 강도**를 평가하는 데 전문성을 갖추고 있습니다.  
-            - **객관적인 논리적 엄밀성을 바탕으로 공정하게 평가**합니다.  
-            - 반박의 강점과 약점을 체계적으로 분석합니다.  
 
-            ### **평가 기준:**  
-            - 반박이 상대의 주장을 **직접적으로 반박하며 논파하는가?**  
-            - **타당한 논리, 일관된 사고, 강력한 근거**를 활용하고 있는가?  
-            - **허수아비 논법, 논점 일탈, 논리적 왜곡** 등의 오류를 피하고 있는가?  
-            - 반박이 **명확하고 설득력 있게 구성**되어 있는가?  
-
-            ### **작업 지침:**  
-            1. 각 반박문의 **강점과 효과적인 논리적 반박 요소**를 분석하세요.  
-            2. **논리적 약점이나 오류**가 있다면 명확히 지적하세요.  
-            3. 반박의 **전반적인 효과성과 상대 주장을 얼마나 효과적으로 반박했는지** 요약하세요.  
-            4. 최종적으로 **100점 척도의 반박 강도 점수를 포함한 평가**를 제공하세요.  
-
-            주제: "{topic}"
-            **찬성측 반론:**
-            {pos_rebuttal}
-            **반대측 반론:**
-            {neg_rebuttal}
-            """
-        )
         # 추가된 심판 프롬프트: 설득력 평가 (judge_3)
         self.judge_persuasion_prompt = PromptTemplate(
             input_variables=["topic", "pos_statements", "neg_statements"],
@@ -428,36 +373,7 @@ class Debate_3(Progress):
             }}
             ```"""
         )
-        self.judge_persuasion_except_json_prompt = PromptTemplate(
-            input_variables=["topic", "pos_statements", "neg_statements"],
-            template="""
-            [SYSTEM: 당신은 설득력 평가 전문가입니다. 아래의 찬성측과 반대측 발언을 비교하여 **설득력을 100점 척도로 평가**하는 것이 당신의 역할입니다.]
-            
-            ### **전문가로서의 역할:**  
-            - 당신은 **논증의 설득력**을 평가하는 데 전문성을 갖추고 있습니다.  
-            - **논리적 타당성과 수사적(설득적) 효과**를 모두 고려하여 분석합니다.  
-            - **체계적인 분석을 바탕으로 객관적으로 평가**하며, 편향되지 않은 결론을 도출합니다.  
 
-            ### **평가 기준:**  
-            - **명확성 & 일관성**: 주장이 명확하고 구조적으로 잘 정리되어 있는가?  
-            - **논리적 타당성**: 논증이 논리적으로 타당하며 오류가 없는가?  
-            - **근거 활용**: 데이터, 사례, 신뢰할 만한 출처를 효과적으로 활용하는가?  
-            - **수사적 & 감성적 설득력**: 설득 전략을 효과적으로 활용하는가?  
-            - **반론 대응력**: 예상되는 반박을 미리 고려하고 효과적으로 대응하는가?  
-
-            ### **작업 지침:**  
-            1. 각 글의 **설득력 있는 요소**를 분석하고 강조하세요.  
-            2. **설득력의 약점 또는 부족한 부분**을 지적하세요.  
-            3. 글이 **청중을 얼마나 효과적으로 설득하는지** 요약하세요.  
-            4. 최종적으로 **100점 척도의 설득력 점수를 포함한 평가**를 제공하세요.  
-            
-            주제: "{topic}"
-            **찬성측 (Pos):**
-            {pos_statements}
-            **반대측 (Neg):**
-            {neg_statements}
-            """
-        )
         self.progress_round1_prompt = PromptTemplate(
             input_variables=["topic"],
             template="""
@@ -639,17 +555,13 @@ class Debate_3(Progress):
             pos_statements=pos_statements,
             neg_statements=neg_statements
         )
-        prompt_logical_except_json = self.judge_logical_except_json_prompt.format(
-            topic=self.data["topic"],
-            pos_statements=pos_statements,
-            neg_statements=neg_statements
-        )
 
         result_logical_text = self.generate_text("judge_1", prompt_logical)
-        result_logical_except_json = self.generate_text("judge_1", prompt_logical_except_json)
+        result_logical_except_json = re.sub(r"```json.*?```", "", result_logical_text, flags=re.DOTALL).strip()
+
         try:
             parsed_logical = self.judge_logical_parser.parse(result_logical_text)
-            self.data["judgement_reason"] += result_logical_except_json
+            self.memory_manager.save_message("judge", result_logical_except_json)
         except Exception:
             parsed_logical = {"logicality_pos": 0, "logicality_neg": 0, "message": "논리 평가 파싱 실패"}
 
@@ -659,16 +571,12 @@ class Debate_3(Progress):
             pos_rebuttal=pos_rebuttal,
             neg_rebuttal=neg_rebuttal
         )
-        prompt_rebuttal_except_json = self.judge_rebuttal_except_json_prompt.format(
-            topic=self.data["topic"],
-            pos_rebuttal=pos_rebuttal,
-            neg_rebuttal=neg_rebuttal
-        )
+
         result_rebuttal_text = self.generate_text("judge_2", prompt_rebuttal)
-        result_rebuttal_except_json = self.generate_text("judge_2", prompt_rebuttal_except_json)
+        result_rebuttal_except_json = re.sub(r"```json.*?```", "", result_rebuttal_text, flags=re.DOTALL).strip()
         try:
             parsed_rebuttal = self.judge_rebuttal_parser.parse(result_rebuttal_text)
-            self.data["judgement_reason"] += result_rebuttal_except_json
+            self.memory_manager.save_message("judge", result_rebuttal_except_json)
         except Exception:
             parsed_rebuttal = {"rebuttal_pos": 0, "rebuttal_neg": 0, "message": "반론 평가 파싱 실패"}
 
@@ -678,16 +586,12 @@ class Debate_3(Progress):
             pos_statements=pos_statements,
             neg_statements=neg_statements
         )
-        prompt_persuasion_except_json = self.judge_persuasion_except_json_prompt.format(
-            topic=self.data["topic"],
-            pos_statements=pos_statements,
-            neg_statements=neg_statements
-        )
+
         result_persuasion_text = self.generate_text("judge_3", prompt_persuasion)
-        result_persuasion_except_json = self.generate_text("judge_3", prompt_persuasion_except_json)
+        result_persuasion_except_json = re.sub(r"```json.*?```", "", result_persuasion_text, flags=re.DOTALL).strip()
         try:
             parsed_persuasion = self.judge_persuasion_parser.parse(result_persuasion_text)
-            self.data["judgement_reason"] += result_persuasion_except_json
+            self.memory_manager.save_message("judge", result_persuasion_except_json)
         except Exception:
             parsed_persuasion = {"persuasion_pos": 0, "persuasion_neg": 0, "message": "설득력 평가 파싱 실패"}
 
