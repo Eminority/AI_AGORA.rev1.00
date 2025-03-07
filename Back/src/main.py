@@ -110,7 +110,7 @@ async def auto_progressing():
                         result = progress_manager.progress_pool[id].progress()
                         print(f"===={progress_manager.progress_pool[id].data['topic']}====\n====\nprogress step : {result.get('step')}\n{result['speaker']} 가 말했음")
                         print(progress_manager.save(id))
-                await asyncio.sleep(1)
+                    await asyncio.sleep(1)
             # if count == 0 and (auto_progress_create_task is None or auto_progress_create_task.done()):
             #     print("자동 주제 생성 시작")
             #     auto_progress_create_task = asyncio.create_task(progress_manager.auto_progress_create(profile_manager))
